@@ -1,0 +1,33 @@
+This folder cotains 23 sport sessions. Each sport session contains 6 walking trials, 3 running trials, 1 squat, 1 jump, 1 lunge, 1 landing trials.
+
+The trials are separate by file names, for example:
+
+- "Subj04_run_81_musForAve_l.txt" means running at speed of 8.1 km/h; 
+- "Subj04_walk_09_ikAngStd_r.txt" means walking at the speed of 0.9km/h; 
+- "Subj04_squat_idTrqStd_r.txt" means the squat motion. 
+...
+
+Each trial contains averaged gait data within 100 gait phase points. Detail informaiton including:
+
+Left/right joint angles (mean + standard deviation):
+	- "Subj04_walk_09_ikAngAve_l.txt": left leg joint angle - average value among all gait cycles
+	- "Subj04_walk_09_ikAngAve_r.txt": right leg joint angle - average value among all gait cycles
+	- "Subj04_walk_09_ikAngStd_l.txt": left leg joint angle - standard deviation value among all gait cycles
+	- "Subj04_walk_09_ikAngStd_r.txt": right leg joint angle - standard deviation value among all gait cycles
+
+Left/right joint torques (mean + standard deviation):
+	- "Subj04_walk_09_idTrqAve_l.txt": left leg joint torque - average value among all gait cycles
+	- "Subj04_walk_09_idTrqAve_r.txt": right leg joint torque - average value among all gait cycles
+	- "Subj04_walk_09_idTrqStd_l.txt": left leg joint torque - standard deviation value among all gait cycles
+	- "Subj04_walk_09_idTrqStd_r.txt": right leg joint torque - standard deviation value among all gait cycles
+
+Left/right muscle forces (mean + standard deviation):
+	- "Subj04_walk_09_musForAve_l.txt": left leg muscle forces - average value among all gait cycles
+	- "Subj04_walk_09_musForAve_r.txt": right leg muscle forces - average value among all gait cycles
+	- "Subj04_walk_09_musForStd_l.txt": left leg muscle forces - standard deviation value among all gait cycles
+	- "Subj04_walk_09_musForStd_r.txt": right leg muscle forces - standard deviation value among all gait cycles
+
+
+Detail parameter information is described as the data label inside each file. They follow the common name definition rules. 
+
+ 

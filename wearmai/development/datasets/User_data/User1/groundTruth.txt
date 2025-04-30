@@ -1,0 +1,26 @@
+day_1:  the actual baseline
+day 2: 1% increase
+day 3: 2% increase
+day 4: 3% increase
+day 5: 4% increase
+day 6: 5% increase
+day 7: 5% decrease
+day 8: 4% decrease
+day 9: 3% decrease
+day 10: 2% decrease
+day 11: 1% decrease
+day 12: baseline
+day 13: 1% decrease
+day 14: 2% decrease
+day 15: 3% decrease
+day 16: 4% decrease
+day 17: 5% decrease
+day 18: 5% increase
+day 19: 4% increase
+day 20: 3% increase
+day 21: 2% increase
+day 22: 1% increase
+day 23: baseline
+
+
+

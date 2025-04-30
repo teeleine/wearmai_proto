@@ -1,0 +1,18 @@
+django
+django-nested-admin
+djangorestframework
+streamlit
+google-genai
+weaviate-client
+chonkie[semantic, st]
+numpy
+pydantic
+openai
+python-dotenv
+sqlalchemy
+pandas
+jupyter
+linkup-sdk
+anthropic
+python-box
+structlog

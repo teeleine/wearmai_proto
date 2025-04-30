@@ -1,0 +1,51 @@
+lumbar_extension - lean forward and backward
+knee_angle_l_moment - torque analysis
+hip_adduction_r - analyse the knee location (inside of outside) --> 
+knee_angle_l 
+mtp_angle_l_moment - mtp is the tall part of the foot not relevant at the moment
+gaitPhase
+pelvis_tz - not relevant
+pelvis_list
+ankle_angle_r
+hip_adduction_l_moment
+subtalar_angle_l_moment - ankle left right rotation - maybe used -> Huawei will tell what for
+hip_rotation_r - also knee location analysis -
+hip_flexion_r_moment - high knee low nee direction
+pelvis_tx - not relevant
+pelvis_tilt_moment
+subtalar_angle_r
+mtp_angle_r_moment
+hip_rotation_l_moment
+hip_flexion_r
+soleus_r
+pelvis_rotation_moment
+knee_angle_r_moment
+mtp_angle_r
+pelvis_list_moment
+ankle_angle_r_moment
+tib_ant_r
+lumbar_extension_moment
+lat_gas_r
+pelvis_rotation
+lumbar_bending_moment
+hip_rotation_r_moment
+ankle_angle_l
+lumbar_rotation
+med_gas_r
+pelvis_tz_force
+pelvis_tx_force
+hip_adduction_r_moment
+lumbar_rotation_moment
+subtalar_angle_l
+mtp_angle_l
+hip_flexion_l_moment
+hip_rotation_l
+hip_adduction_l
+hip_flexion_l
+pelvis_ty_force
+pelvis_ty
+knee_angle_r
+pelvis_tilt
+subtalar_angle_r_moment
+lumbar_bending
+ankle_angle_l_moment

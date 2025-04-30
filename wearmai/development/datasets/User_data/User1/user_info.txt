@@ -1,0 +1,4 @@
+weight: 75.2kg
+height: 1.80m
+gender: male
+shoesize: 43
