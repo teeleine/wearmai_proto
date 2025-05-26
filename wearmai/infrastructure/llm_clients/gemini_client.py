@@ -4,6 +4,7 @@ from google.genai.types import GenerateContentConfig, ThinkingConfig
 from .base import BaseLLMClient, LLModels
 from time import sleep
 import structlog
+from typing import Optional, Callable
 
 log = structlog.get_logger(__name__)
 
@@ -63,7 +64,8 @@ class GeminiClient(BaseLLMClient):
         temperature: float | None = None,
         top_p: float | None = None,
         thinking_budget: int | None = None,
-        thinking_config: dict | None = None
+        thinking_config: dict | None = None,
+        status_callback: Optional[Callable[[str], None]] = None
     ) -> str:
         """
         Streaming call to Gemini. Writes chunks to stream_box.markdown.
@@ -100,8 +102,10 @@ class GeminiClient(BaseLLMClient):
                     if not part.text:
                         continue
                     elif hasattr(part, 'thought') and part.thought:
-                        # Don't add thoughts to final response, but update stream box
-                        stream_box.markdown(final_response + "\n\n💭 " + part.text + "\n\n▌")
+                        # Pass thought to callback if available
+                        if status_callback:
+                            status_callback(f"Thinking: {part.text}")
+                        stream_box.markdown(final_response + "▌")
                     else:
                         final_response += part.text
                         stream_box.markdown(final_response + "▌")

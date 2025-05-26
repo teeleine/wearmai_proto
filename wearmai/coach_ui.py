@@ -100,7 +100,12 @@ def process_message(message: str):
         
         with st.chat_message("assistant"):
             final_answer_container = st.empty()
-            thinking_container = st.empty() if st.session_state.mode == "Deepthink" else None
+            
+            # Create thinking container with expander if in Deepthink mode
+            thinking_expander = None
+            if st.session_state.mode == "Deepthink":
+                thinking_expander = st.expander("✨ See what I'm thinking...", expanded=False)
+                thinking_expander.markdown("") # Initialize empty
             
             with st.status("Processing your request...", expanded=True) as status_box:
                 try:
@@ -114,11 +119,29 @@ def process_message(message: str):
                     model = LLModels.GEMINI_25_FLASH
                     is_deepthink = st.session_state.mode == "Deepthink"
                     
+                    # Keep track of accumulated thoughts
+                    thoughts = []
+                    
                     def update_status(status_msg: str):
-                        if status_msg.startswith("Thinking:") and thinking_container:
-                            # Update the thinking container with the thought process
-                            current_thoughts = thinking_container.markdown("")  # Get current markdown content
-                            thinking_container.markdown(f"**Thinking Process:**\n{status_msg[9:]}")  # Remove "Thinking: " prefix
+                        if status_msg.startswith("Thinking:") and thinking_expander:
+                            # Add new thought and show all thoughts
+                            thought = status_msg[9:].strip()  # Remove "Thinking: " prefix
+                            thoughts.append(thought)
+                            
+                            # Format thoughts to match the example
+                            thinking_content = "⭐ Thinking ••• (experimental)\n\n"
+                            current_section = None
+                            
+                            for t in thoughts:
+                                # Check if this is a section header (no indentation)
+                                if not t.startswith(" "):
+                                    current_section = t
+                                    thinking_content += f"\n## {current_section}\n\n"
+                                else:
+                                    # This is content under a section
+                                    thinking_content += f"{t}\n\n"
+                            
+                            thinking_expander.markdown(thinking_content)
                         else:
                             status_box.update(label=status_msg, state="running")
                     
@@ -132,6 +155,10 @@ def process_message(message: str):
                         is_deepthink=is_deepthink,
                         status_callback=update_status
                     )
+                    
+                    # If we had thoughts, keep the expander but collapse it
+                    if thoughts and thinking_expander:
+                        thinking_expander.expanded = False
                     
                     status_box.update(label="Response complete!", state="complete", expanded=False)
                     st.session_state.messages.append({"role": "assistant", "content": final_answer_text})

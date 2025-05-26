@@ -202,7 +202,7 @@ class CoachService():
     ) -> str:
         if status_callback:
             status_callback("Gathering relevant context...")
-
+        
         log.info("stream_answer", is_deepthink=is_deepthink)
         
         context = self.retrieve_necessary_context(query, status_callback=status_callback)
@@ -229,6 +229,7 @@ class CoachService():
             model=model,
             stream_box=stream_box,
             temperature=temperature,
+            status_callback=status_callback,
             **kwargs
         )
         self.update_history(query, response)
