@@ -99,13 +99,16 @@ def process_message(message: str):
             st.markdown(message)
         
         with st.chat_message("assistant"):
-            final_answer_container = st.empty()
-            
-            # Create thinking container with expander if in Deepthink mode
+            # Create thinking container with expander FIRST if in Deepthink mode
             thinking_expander = None
+            thinking_container = None
             if st.session_state.mode == "Deepthink":
-                thinking_expander = st.expander("✨ See what I'm thinking...", expanded=False)
+                thinking_container = st.empty()
+                thinking_expander = thinking_container.expander("✨ See what I'm thinking...", expanded=False)
                 thinking_expander.markdown("") # Initialize empty
+            
+            # Then create the final answer container
+            final_answer_container = st.empty()
             
             with st.status("Processing your request...", expanded=True) as status_box:
                 try:
@@ -119,29 +122,28 @@ def process_message(message: str):
                     model = LLModels.GEMINI_25_FLASH
                     is_deepthink = st.session_state.mode == "Deepthink"
                     
-                    # Keep track of accumulated thoughts
-                    thoughts = []
+                    # Keep track of accumulated thoughts - use set to prevent duplicates
+                    thoughts_seen = set()
+                    thoughts_content = "••• ⭐ Thinking •••\n\n"
                     
                     def update_status(status_msg: str):
+                        nonlocal thoughts_content
+                        
                         if status_msg.startswith("Thinking:") and thinking_expander:
-                            # Add new thought and show all thoughts
+                            # Add new thought only if we haven't seen it before
                             thought = status_msg[9:].strip()  # Remove "Thinking: " prefix
-                            thoughts.append(thought)
                             
-                            # Format thoughts to match the example
-                            thinking_content = "⭐ Thinking ••• (experimental)\n\n"
-                            current_section = None
-                            
-                            for t in thoughts:
+                            if thought not in thoughts_seen:
+                                thoughts_seen.add(thought)
+                                
                                 # Check if this is a section header (no indentation)
-                                if not t.startswith(" "):
-                                    current_section = t
-                                    thinking_content += f"\n## {current_section}\n\n"
+                                if not thought.startswith(" "):
+                                    thoughts_content += f"\n## {thought}\n\n"
                                 else:
                                     # This is content under a section
-                                    thinking_content += f"{t}\n\n"
-                            
-                            thinking_expander.markdown(thinking_content)
+                                    thoughts_content += f"{thought}\n\n"
+                                
+                                thinking_expander.markdown(thoughts_content)
                         else:
                             status_box.update(label=status_msg, state="running")
                     
@@ -156,8 +158,8 @@ def process_message(message: str):
                         status_callback=update_status
                     )
                     
-                    # If we had thoughts, keep the expander but collapse it
-                    if thoughts and thinking_expander:
+                    # Keep the thinking expander visible but collapsed after completion
+                    if thinking_expander and thoughts_seen:
                         thinking_expander.expanded = False
                     
                     status_box.update(label="Response complete!", state="complete", expanded=False)
