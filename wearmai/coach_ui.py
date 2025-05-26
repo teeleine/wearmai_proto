@@ -88,84 +88,85 @@ def process_message(user_query: str):
         return
 
     # show the assistant bubble
-    with st.chat_message("assistant"):
-        thinking_expander = None
-        thoughts_content = "••• ⭐ Thinking •••\n\n"
-        thoughts_seen = set()
-        current_section = None
-        is_deep = st.session_state.mode == "Deepthink"
+    with chat_container:  # Use the chat container for assistant messages
+        with st.chat_message("assistant"):
+            thinking_expander = None
+            thoughts_content = "••• ⭐ Thinking •••\n\n"
+            thoughts_seen = set()
+            current_section = None
+            is_deep = st.session_state.mode == "Deepthink"
 
-        if is_deep:
-            thinking_expander = st.expander("✨ See what I'm thinking...", expanded=False)
-            thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
+            if is_deep:
+                thinking_expander = st.expander("✨ See what I'm thinking...", expanded=False)
+                thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
 
-        final_answer_ui = st.empty()
+            final_answer_ui = st.empty()
 
-        with st.status("Processing your request...", expanded=True) as status_box:
-            try:
-                if not connection.is_usable():
-                    status_box.update(label="Reconnecting to database...", state="running")
-                    connection.close()
-                    connection.connect()
+            with st.status("Processing your request...", expanded=True) as status_box:
+                try:
+                    if not connection.is_usable():
+                        status_box.update(label="Reconnecting to database...", state="running")
+                        connection.close()
+                        connection.connect()
 
-                def status_cb(msg: str):
-                    nonlocal thoughts_content, current_section
-                    if msg.startswith("Thinking:") and thinking_expander:
-                        part = msg[len("Thinking:") :].lstrip()
-                        stripped = part.strip()
-                        if stripped and stripped not in thoughts_seen:
-                            thoughts_seen.add(stripped)
-                            if (
-                                not part.startswith(("#", "*", "-", " ", "\t", ">"))
-                                and len(stripped.split()) < 10
-                            ):
-                                current_section = stripped
-                                thoughts_content = f"••• ⭐ Thinking •••\n\n## {current_section}\n\n"
-                            else:
-                                if current_section:
-                                    thoughts_content = (
-                                        f"••• ⭐ Thinking •••\n\n## {current_section}\n\n"
-                                        + part
-                                        + "\n\n"
-                                    )
+                    def status_cb(msg: str):
+                        nonlocal thoughts_content, current_section
+                        if msg.startswith("Thinking:") and thinking_expander:
+                            part = msg[len("Thinking:") :].lstrip()
+                            stripped = part.strip()
+                            if stripped and stripped not in thoughts_seen:
+                                thoughts_seen.add(stripped)
+                                if (
+                                    not part.startswith(("#", "*", "-", " ", "\t", ">"))
+                                    and len(stripped.split()) < 10
+                                ):
+                                    current_section = stripped
+                                    thoughts_content = f"••• ⭐ Thinking •••\n\n## {current_section}\n\n"
                                 else:
-                                    thoughts_content = f"••• ⭐ Thinking •••\n\n{part}\n\n"
-                            thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
-                    else:
-                        status_box.update(label=msg, state="running")
+                                    if current_section:
+                                        thoughts_content = (
+                                            f"••• ⭐ Thinking •••\n\n## {current_section}\n\n"
+                                            + part
+                                            + "\n\n"
+                                        )
+                                    else:
+                                        thoughts_content = f"••• ⭐ Thinking •••\n\n{part}\n\n"
+                                thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
+                        else:
+                            status_box.update(label=msg, state="running")
 
-                status_box.update(label="Analyzing your request...", state="running")
-                final_text = st.session_state.coach_svc.stream_answer(
-                    query=user_query,
-                    model=LLModels.GEMINI_25_FLASH,
-                    stream_box=final_answer_ui,
-                    temperature=0.7,
-                    thinking_budget=None,
-                    is_deepthink=is_deep,
-                    status_callback=status_cb,
-                )
+                    status_box.update(label="Analyzing your request...", state="running")
+                    final_text = st.session_state.coach_svc.stream_answer(
+                        query=user_query,
+                        model=LLModels.GEMINI_25_FLASH,
+                        stream_box=final_answer_ui,
+                        temperature=0.7,
+                        thinking_budget=None,
+                        is_deepthink=is_deep,
+                        status_callback=status_cb,
+                    )
 
-                if thinking_expander:
-                    if thoughts_seen:
-                        thinking_expander.expanded = False
-                    else:
-                        thinking_expander.markdown("")
+                    if thinking_expander:
+                        if thoughts_seen:
+                            thinking_expander.expanded = False
+                        else:
+                            thinking_expander.markdown("")
 
-                status_box.update(label="Response complete!", state="complete", expanded=False)
+                    status_box.update(label="Response complete!", state="complete", expanded=False)
 
-                data = {"role": "assistant", "content": final_text}
-                if is_deep and thoughts_seen:
-                    cleaned = thoughts_content.replace("••• ⭐ Thinking •••\n\n", "", 1).strip()
-                    if cleaned:
-                        data["thoughts_markdown"] = cleaned
+                    data = {"role": "assistant", "content": final_text}
+                    if is_deep and thoughts_seen:
+                        cleaned = thoughts_content.replace("••• ⭐ Thinking •••\n\n", "", 1).strip()
+                        if cleaned:
+                            data["thoughts_markdown"] = cleaned
 
-                st.session_state.messages.append(data)
+                    st.session_state.messages.append(data)
 
-            except Exception as e:
-                log.error("Error in process_message", exc_info=e)
-                err = f"Sorry, I encountered an error: {e}"
-                status_box.update(label=err, state="error", expanded=True)
-                st.session_state.messages.append({"role": "assistant", "content": err})
+                except Exception as e:
+                    log.error("Error in process_message", exc_info=e)
+                    err = f"Sorry, I encountered an error: {e}"
+                    status_box.update(label=err, state="error", expanded=True)
+                    st.session_state.messages.append({"role": "assistant", "content": err})
 
 # Container for the chat bubbles - MOVED TO TOP
 chat_container = st.container()
@@ -179,7 +180,6 @@ with chat_container:
                     st.markdown(msg["thoughts_markdown"], unsafe_allow_html=True)
             st.markdown(msg["content"])
 
-
 # ----- Quick Actions -----
 quick_actions = {
     "📊 Analyze my last run": "Can you analyze my last run data and provide detailed insights about my performance?",
@@ -188,29 +188,24 @@ quick_actions = {
     "🚨 Injury risk assessment": "Can you perform a comprehensive injury risk assessment based on my running data and patterns?",
 }
 
+# Only show quick actions if they're enabled and it's the first message
+quick_actions_container = st.empty()
 if st.session_state.show_quick_actions and len(st.session_state.messages) == 1:
-    st.write("Here are some ways we can start:")
-    cols = st.columns(len(quick_actions))
-    for i, (lbl, prompt) in enumerate(quick_actions.items()):
-        if cols[i].button(lbl, key=f"qa_{i}", use_container_width=True):
-            st.session_state.show_quick_actions = False
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            # Show user message immediately
-            with chat_container:
-                with st.chat_message("user"):
-                    st.markdown(prompt)
-            process_message(prompt)
-            st.rerun()
-
-# Chat input using st.chat_input - MOVED TO BOTTOM
-if user_message := st.chat_input("Ask the Coach"):
-    st.session_state.show_quick_actions = False
-    # Add and show user message immediately
-    st.session_state.messages.append({"role": "user", "content": user_message})
-    with chat_container:
-        with st.chat_message("user"):
-            st.markdown(user_message)
-    process_message(user_message)
+    with quick_actions_container:
+        st.write("Here are some ways we can start:")
+        cols = st.columns(len(quick_actions))
+        for i, (lbl, prompt) in enumerate(quick_actions.items()):
+            if cols[i].button(lbl, key=f"qa_{i}", use_container_width=True):
+                # Clear the quick actions immediately
+                quick_actions_container.empty()
+                st.session_state.show_quick_actions = False
+                
+                # Add and show user message
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                with chat_container:
+                    with st.chat_message("user"):
+                        st.markdown(prompt)
+                process_message(prompt)
 
 # ----- Mode Selection ----- MOVED ABOVE CHAT INPUT
 mode_col, _ = st.columns([1, 3])
@@ -222,3 +217,16 @@ with mode_col:
         label_visibility="collapsed",
     )
     st.session_state.mode = sel.split(" ")[1]
+
+# Chat input using st.chat_input - MOVED TO BOTTOM
+if user_message := st.chat_input("Ask the Coach"):
+    # Clear quick actions if they're still showing
+    quick_actions_container.empty()
+    st.session_state.show_quick_actions = False
+    
+    # Add and show user message
+    st.session_state.messages.append({"role": "user", "content": user_message})
+    with chat_container:
+        with st.chat_message("user"):
+            st.markdown(user_message)
+    process_message(user_message)
