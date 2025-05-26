@@ -188,20 +188,25 @@ quick_actions = {
     "🚨 Injury risk assessment": "Can you perform a comprehensive injury risk assessment based on my running data and patterns?",
 }
 
+# Create a container for quick actions that we can hide immediately
+quick_actions_placeholder = st.empty()
+
 # Only show quick actions if they're enabled and it's the first message
 if st.session_state.show_quick_actions and len(st.session_state.messages) == 1:
-    st.write("Here are some ways we can start:")
-    cols = st.columns(len(quick_actions))
-    for i, (lbl, prompt) in enumerate(quick_actions.items()):
-        if cols[i].button(lbl, key=f"qa_{i}", use_container_width=True):
-            st.session_state.show_quick_actions = False
-            # Add and show user message
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with chat_container:
-                with st.chat_message("user"):
-                    st.markdown(prompt)
-            process_message(prompt)
-            st.rerun()  # Force a clean rerun after processing
+    with quick_actions_placeholder:
+        st.write("Here are some ways we can start:")
+        cols = st.columns(len(quick_actions))
+        for i, (lbl, prompt) in enumerate(quick_actions.items()):
+            if cols[i].button(lbl, key=f"qa_{i}", use_container_width=True):
+                quick_actions_placeholder.empty()
+                st.session_state.show_quick_actions = False
+                # Add and show user message
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                with chat_container:
+                    with st.chat_message("user"):
+                        st.markdown(prompt)
+                process_message(prompt)
+                st.rerun()  # Force a clean rerun after processing
 
 # ----- Mode Selection ----- MOVED ABOVE CHAT INPUT
 mode_col, _ = st.columns([1, 3])
@@ -216,6 +221,8 @@ with mode_col:
 
 # Chat input using st.chat_input - MOVED TO BOTTOM
 if user_message := st.chat_input("Ask the Coach"):
+    # Immediately hide quick actions
+    quick_actions_placeholder.empty()
     st.session_state.show_quick_actions = False
     # Add and show user message
     st.session_state.messages.append({"role": "user", "content": user_message})
