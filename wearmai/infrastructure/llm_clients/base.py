@@ -3,7 +3,7 @@ from typing import Iterator
 from enum import StrEnum
 
 class LLModels(StrEnum):
-    GEMINI_25_FLASH = "gemini-2.5-flash-preview-04-17"
+    GEMINI_25_FLASH = "gemini-2.5-flash-preview-05-20"
     GEMINI_20_FLASH = "gemini-2.0-flash"
     GPT_41 = "gpt-4.1"
     CLAUDE_37_SONNET = "claude-3-7-sonnet-20250219"
