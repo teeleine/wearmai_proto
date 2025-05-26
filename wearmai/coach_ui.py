@@ -108,6 +108,7 @@ def process_message(user_query: str):
         # Initialize thoughts_content and thoughts_seen for each call to process_message
         thoughts_content = "••• ⭐ Thinking •••\n\n"
         thoughts_seen = set()
+        current_section = None
 
         is_deepthink_mode = st.session_state.mode == "Deepthink"
 
@@ -129,7 +130,7 @@ def process_message(user_query: str):
                 model_to_use = LLModels.GEMINI_25_FLASH # GEMINI_15_FLASH in original
                 
                 def update_status_callback(status_msg: str):
-                    nonlocal thoughts_content # Modifies the variable from process_message scope
+                    nonlocal thoughts_content, current_section # Access both variables
                     
                     if status_msg.startswith("Thinking:") and thinking_expander:
                         raw_thought_part = status_msg[len("Thinking:"):].lstrip() # Get text after "Thinking: ", remove leading spaces from this part
@@ -138,14 +139,18 @@ def process_message(user_query: str):
                         if stripped_thought_part and stripped_thought_part not in thoughts_seen:
                             thoughts_seen.add(stripped_thought_part)
                             
-                            formatted_thought_line = ""
                             # Heuristic: if it doesn't start with typical markdown structural chars or spaces, make it H2
-                            if not raw_thought_part.startswith(("#", "*", "-", " ", "\t", ">")) and len(stripped_thought_part.split()) < 10: # Short lines as headers
-                                formatted_thought_line = f"\n## {stripped_thought_part}\n\n"
-                            else: # Otherwise, assume it's content or pre-formatted markdown
-                                formatted_thought_line = f"{raw_thought_part}\n\n"
+                            if not raw_thought_part.startswith(("#", "*", "-", " ", "\t", ">")) and len(stripped_thought_part.split()) < 10:
+                                # This is a new section header
+                                current_section = stripped_thought_part
+                                thoughts_content = f"••• ⭐ Thinking •••\n\n## {current_section}\n\n"
+                            else:
+                                # This is content under the current section
+                                if current_section:
+                                    thoughts_content = f"••• ⭐ Thinking •••\n\n## {current_section}\n\n{raw_thought_part}\n\n"
+                                else:
+                                    thoughts_content = f"••• ⭐ Thinking •••\n\n{raw_thought_part}\n\n"
                             
-                            thoughts_content += formatted_thought_line
                             thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
                     else:
                         status_box.update(label=status_msg, state="running")
