@@ -91,10 +91,11 @@ def process_message(user_query: str):
     with chat_container:  # Use the chat container for assistant messages
         with st.chat_message("assistant"):
             thinking_expander = None
-            thoughts_content = "⭐ The model's thoughts will be shown below\n\n"
+            thoughts_content = ""
             thoughts_seen = set()
             current_section = None
             is_deep = st.session_state.mode == "Deepthink"
+            has_shown_initial_message = False
 
             if is_deep:
                 thinking_expander = st.expander("✨ See what I'm thinking...", expanded=False)
@@ -110,11 +111,16 @@ def process_message(user_query: str):
                         connection.connect()
 
                     def status_cb(msg: str):
-                        nonlocal thoughts_content, current_section
+                        nonlocal thoughts_content, current_section, has_shown_initial_message
                         if msg.startswith("Thinking:") and thinking_expander:
                             part = msg[len("Thinking:") :].lstrip()
                             stripped = part.strip()
                             if stripped and stripped not in thoughts_seen:
+                                # Show initial message only before first thought
+                                if not has_shown_initial_message:
+                                    thoughts_content = "⭐ The model's thoughts will be shown below\n\n"
+                                    has_shown_initial_message = True
+
                                 thoughts_seen.add(stripped)
                                 if (
                                     not part.startswith(("#", "*", "-", " ", "\t", ">"))
@@ -204,8 +210,8 @@ if st.session_state.show_quick_actions and len(st.session_state.messages) == 1:
                 process_message(prompt)
                 st.rerun()  # Force a clean rerun after processing
 
-# ----- Mode Selection ----- MOVED ABOVE CHAT INPUT
-mode_col, _ = st.columns([1, 3])
+# ----- Mode Selection and Chat Input -----
+mode_col, chat_col = st.columns([1, 3])
 with mode_col:
     sel = st.selectbox(
         "Mode",
@@ -215,15 +221,16 @@ with mode_col:
     )
     st.session_state.mode = sel.split(" ")[1]
 
-# Chat input using st.chat_input - MOVED TO BOTTOM
-if user_message := st.chat_input("Ask the Coach"):
-    # Immediately hide quick actions
-    quick_actions_placeholder.empty()
-    st.session_state.show_quick_actions = False
-    # Add and show user message
-    st.session_state.messages.append({"role": "user", "content": user_message})
-    with chat_container:
-        with st.chat_message("user"):
-            st.markdown(user_message)
-    process_message(user_message)
-    st.rerun()  # Force a clean rerun after processing
+with chat_col:
+    # Chat input using st.chat_input
+    if user_message := st.chat_input("Ask the Coach"):
+        # Immediately hide quick actions
+        quick_actions_placeholder.empty()
+        st.session_state.show_quick_actions = False
+        # Add and show user message
+        st.session_state.messages.append({"role": "user", "content": user_message})
+        with chat_container:
+            with st.chat_message("user"):
+                st.markdown(user_message)
+        process_message(user_message)
+        st.rerun()  # Force a clean rerun after processing
