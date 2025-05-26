@@ -101,25 +101,31 @@ def process_message(message: str):
         with st.chat_message("assistant"):
             final_answer_container = st.empty()
             
-            with st.status("Thinking...", expanded=True) as status_box:
+            with st.status("Processing your request...", expanded=True) as status_box:
                 try:
                     # Ensure database connection is ready
                     if not connection.is_usable():
+                        status_box.update(label="Reconnecting to database...", state="running")
                         connection.close()
                         connection.connect()
 
                     model = LLModels.GEMINI_25_FLASH if st.session_state.mode == "Flash" else LLModels.GEMINI_25_PRO
                     thinking_budget = 0 if st.session_state.mode == "Flash" else 30
                     
+                    def update_status(status_msg: str):
+                        status_box.update(label=status_msg, state="running")
+                    
+                    status_box.update(label="Analyzing your request...", state="running")
                     final_answer_text = st.session_state.coach_svc.stream_answer(
                         query=message,
                         model=model,
                         stream_box=final_answer_container,
                         temperature=0.7,
-                        thinking_budget=thinking_budget
+                        thinking_budget=thinking_budget,
+                        status_callback=update_status
                     )
                     
-                    status_box.update(label="Request complete!", state="complete", expanded=False)
+                    status_box.update(label="Response complete!", state="complete", expanded=False)
                     st.session_state.messages.append({"role": "assistant", "content": final_answer_text})
                     
                 except Exception as e:

@@ -149,11 +149,10 @@ class CoachService():
         self.update_session_history()
 
     
-    def create_system_prompt(self, query: str) -> str:
-        relevant_context = self.retrieve_necessary_context(query) 
+    def create_system_prompt(self, query: str, context: dict) -> str:
         combined_history = [self.session_history_summary] + self.session_history if self.session_history_summary else self.session_history
 
-        if relevant_context["fact_checking_data"] == True:
+        if context["fact_checking_data"] == True:
              query = query + " Ground your advice and analysis using the provided `fact_checking_data` containing scientific literature search results."
 
 
@@ -163,10 +162,10 @@ class CoachService():
                 "query":query,
                 "user_profile":self.user_profile,
                 "chat_history":combined_history,
-                "run_summary_data":relevant_context['run_summary_data'],
-                "raw_run_data":relevant_context['raw_run_data'],
-                "book_content":relevant_context['relevant_chunks'],
-                "fact_checking_data": relevant_context['fact_checking_data']
+                "run_summary_data":context['run_summary_data'],
+                "raw_run_data":context['raw_run_data'],
+                "book_content":context['relevant_chunks'],
+                "fact_checking_data": context['fact_checking_data']
             }
         )
 
@@ -179,7 +178,7 @@ class CoachService():
         temperature: int | float = 1,
         **kwargs,
     ) -> str:
-        prompt = self.create_system_prompt(query)
+        prompt = self.create_system_prompt(query, self.retrieve_necessary_context(query))
         client = self.llm_factory.get(model)
         result = client.generate(
             prompt,
@@ -196,10 +195,23 @@ class CoachService():
         model: LLModels,
         stream_box,
         temperature: int | float = 1,
+        status_callback: Optional[Callable[[str], None]] = None,
         **kwargs
     ) -> str:
-        prompt = self.create_system_prompt(query)
+        if status_callback:
+            status_callback("Gathering relevant context...")
+        
+        context = self.retrieve_necessary_context(query, status_callback=status_callback)
+        
+        if status_callback:
+            status_callback("Formulating response...")
+        
+        prompt = self.create_system_prompt(query, context)
         client = self.llm_factory.get(model)
+        
+        if status_callback:
+            status_callback("Generating response...")
+            
         response = client.stream(
             prompt,
             model=model,
