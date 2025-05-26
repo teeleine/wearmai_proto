@@ -99,7 +99,6 @@ def process_message(user_query: str):
 
             if is_deep:
                 thinking_expander = st.expander("✨ See what I'm thinking...", expanded=False)
-                thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
 
             final_answer_ui = st.empty()
 
@@ -115,25 +114,31 @@ def process_message(user_query: str):
                         if msg.startswith("Thinking:") and thinking_expander:
                             part = msg[len("Thinking:") :].lstrip()
                             stripped = part.strip()
-                            if stripped and stripped not in thoughts_seen:
-                                # Show initial message only before first thought
-                                if not has_shown_initial_message:
-                                    thoughts_content = "⭐ The model's thoughts will be shown below\n\n"
-                                    has_shown_initial_message = True
+                            
+                            # Skip empty or already seen content
+                            if not stripped or stripped in thoughts_seen:
+                                return
+                                
+                            # Add to seen set immediately to prevent duplicates
+                            thoughts_seen.add(stripped)
+                            
+                            # Show initial message only before first thought
+                            if not has_shown_initial_message:
+                                thoughts_content = "⭐ The model's thoughts will be shown below\n\n"
+                                has_shown_initial_message = True
 
-                                thoughts_seen.add(stripped)
-                                if (
-                                    not part.startswith(("#", "*", "-", " ", "\t", ">"))
-                                    and len(stripped.split()) < 10
-                                ):
-                                    current_section = stripped
-                                    thoughts_content += f"## {current_section}\n\n"
-                                else:
-                                    if current_section:
-                                        thoughts_content += f"{part}\n\n"
-                                    else:
-                                        thoughts_content += f"{part}\n\n"
-                                thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
+                            # Check if this looks like a section header
+                            if (
+                                not part.startswith(("#", "*", "-", " ", "\t", ">"))
+                                and len(stripped.split()) < 10
+                            ):
+                                current_section = stripped
+                                thoughts_content += f"## {current_section}\n\n"
+                            else:
+                                thoughts_content += f"{part}\n\n"
+                                
+                            # Update the expander with new content
+                            thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
                         else:
                             status_box.update(label=msg, state="running")
 
