@@ -91,7 +91,7 @@ def process_message(user_query: str):
     with chat_container:  # Use the chat container for assistant messages
         with st.chat_message("assistant"):
             thinking_expander = None
-            thoughts_content = "••• ⭐ Thinking •••\n\n"
+            thoughts_content = "⭐ The model's thoughts will be shown below\n\n"
             thoughts_seen = set()
             current_section = None
             is_deep = st.session_state.mode == "Deepthink"
@@ -121,16 +121,16 @@ def process_message(user_query: str):
                                     and len(stripped.split()) < 10
                                 ):
                                     current_section = stripped
-                                    thoughts_content = f"••• ⭐ Thinking •••\n\n## {current_section}\n\n"
+                                    thoughts_content = f"⭐ The model's thoughts will be shown below\n\n## {current_section}\n\n"
                                 else:
                                     if current_section:
                                         thoughts_content = (
-                                            f"••• ⭐ Thinking •••\n\n## {current_section}\n\n"
+                                            f"⭐ The model's thoughts will be shown below\n\n## {current_section}\n\n"
                                             + part
                                             + "\n\n"
                                         )
                                     else:
-                                        thoughts_content = f"••• ⭐ Thinking •••\n\n{part}\n\n"
+                                        thoughts_content = f"⭐ The model's thoughts will be shown below\n\n{part}\n\n"
                                 thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
                         else:
                             status_box.update(label=msg, state="running")
@@ -141,7 +141,7 @@ def process_message(user_query: str):
                         model=LLModels.GEMINI_25_FLASH,
                         stream_box=final_answer_ui,
                         temperature=0.7,
-                        thinking_budget=None,
+                        thinking_budget=0 if st.session_state.mode == "Flash" else None,
                         is_deepthink=is_deep,
                         status_callback=status_cb,
                     )
@@ -156,7 +156,7 @@ def process_message(user_query: str):
 
                     data = {"role": "assistant", "content": final_text}
                     if is_deep and thoughts_seen:
-                        cleaned = thoughts_content.replace("••• ⭐ Thinking •••\n\n", "", 1).strip()
+                        cleaned = thoughts_content.replace("⭐ The model's thoughts will be shown below\n\n", "", 1).strip()
                         if cleaned:
                             data["thoughts_markdown"] = cleaned
 
