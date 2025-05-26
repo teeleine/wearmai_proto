@@ -182,30 +182,26 @@ with chat_container:
 
 # ----- Quick Actions -----
 quick_actions = {
-    "📊 Analyze my last run": "Can you analyze my last run data and provide detailed insights about my performance?",
+    "📊 Analyze my last run": "hi, how are you? respond in 1 sentences",
     "🎯 Create a 4-week plan": "Can you create a personalized 4-week running plan tailored to my current fitness level?",
     "🏃‍♂️ Analyze run technique": "Can you analyze my running technique and provide specific recommendations for improvement?",
     "🚨 Injury risk assessment": "Can you perform a comprehensive injury risk assessment based on my running data and patterns?",
 }
 
 # Only show quick actions if they're enabled and it's the first message
-quick_actions_container = st.empty()
 if st.session_state.show_quick_actions and len(st.session_state.messages) == 1:
-    with quick_actions_container:
-        st.write("Here are some ways we can start:")
-        cols = st.columns(len(quick_actions))
-        for i, (lbl, prompt) in enumerate(quick_actions.items()):
-            if cols[i].button(lbl, key=f"qa_{i}", use_container_width=True):
-                # Clear the quick actions immediately
-                quick_actions_container.empty()
-                st.session_state.show_quick_actions = False
-                
-                # Add and show user message
-                st.session_state.messages.append({"role": "user", "content": prompt})
-                with chat_container:
-                    with st.chat_message("user"):
-                        st.markdown(prompt)
-                process_message(prompt)
+    st.write("Here are some ways we can start:")
+    cols = st.columns(len(quick_actions))
+    for i, (lbl, prompt) in enumerate(quick_actions.items()):
+        if cols[i].button(lbl, key=f"qa_{i}", use_container_width=True):
+            st.session_state.show_quick_actions = False
+            # Add and show user message
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with chat_container:
+                with st.chat_message("user"):
+                    st.markdown(prompt)
+            process_message(prompt)
+            st.rerun()  # Force a clean rerun after processing
 
 # ----- Mode Selection ----- MOVED ABOVE CHAT INPUT
 mode_col, _ = st.columns([1, 3])
@@ -220,13 +216,11 @@ with mode_col:
 
 # Chat input using st.chat_input - MOVED TO BOTTOM
 if user_message := st.chat_input("Ask the Coach"):
-    # Clear quick actions if they're still showing
-    quick_actions_container.empty()
     st.session_state.show_quick_actions = False
-    
     # Add and show user message
     st.session_state.messages.append({"role": "user", "content": user_message})
     with chat_container:
         with st.chat_message("user"):
             st.markdown(user_message)
     process_message(user_message)
+    st.rerun()  # Force a clean rerun after processing
