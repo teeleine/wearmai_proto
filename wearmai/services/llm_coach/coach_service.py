@@ -196,10 +196,14 @@ class CoachService():
         stream_box,
         temperature: int | float = 1,
         status_callback: Optional[Callable[[str], None]] = None,
+        thinking_budget: Optional[int] = None,
+        is_deepthink: bool = False,
         **kwargs
     ) -> str:
         if status_callback:
             status_callback("Gathering relevant context...")
+
+        log.info("stream_answer", is_deepthink=is_deepthink)
         
         context = self.retrieve_necessary_context(query, status_callback=status_callback)
         
@@ -211,6 +215,14 @@ class CoachService():
         
         if status_callback:
             status_callback("Generating response...")
+            
+        # Configure thinking for Deepthink mode
+        if is_deepthink:
+            kwargs['thinking_config'] = {
+                'include_thoughts': True
+            }
+        elif thinking_budget is not None:
+            kwargs['thinking_budget'] = thinking_budget
             
         response = client.stream(
             prompt,

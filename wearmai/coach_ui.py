@@ -100,6 +100,7 @@ def process_message(message: str):
         
         with st.chat_message("assistant"):
             final_answer_container = st.empty()
+            thinking_container = st.empty() if st.session_state.mode == "Deepthink" else None
             
             with st.status("Processing your request...", expanded=True) as status_box:
                 try:
@@ -109,11 +110,17 @@ def process_message(message: str):
                         connection.close()
                         connection.connect()
 
-                    model = LLModels.GEMINI_25_FLASH if st.session_state.mode == "Flash" else LLModels.GEMINI_25_PRO
-                    thinking_budget = 0 if st.session_state.mode == "Flash" else 30
+                    # Use GEMINI_25_FLASH for both modes, but configure thinking differently
+                    model = LLModels.GEMINI_25_FLASH
+                    is_deepthink = st.session_state.mode == "Deepthink"
                     
                     def update_status(status_msg: str):
-                        status_box.update(label=status_msg, state="running")
+                        if status_msg.startswith("Thinking:") and thinking_container:
+                            # Update the thinking container with the thought process
+                            current_thoughts = thinking_container.markdown("")  # Get current markdown content
+                            thinking_container.markdown(f"**Thinking Process:**\n{status_msg[9:]}")  # Remove "Thinking: " prefix
+                        else:
+                            status_box.update(label=status_msg, state="running")
                     
                     status_box.update(label="Analyzing your request...", state="running")
                     final_answer_text = st.session_state.coach_svc.stream_answer(
@@ -121,7 +128,8 @@ def process_message(message: str):
                         model=model,
                         stream_box=final_answer_container,
                         temperature=0.7,
-                        thinking_budget=thinking_budget,
+                        thinking_budget=None,  # Let Gemini auto-adjust thinking budget
+                        is_deepthink=is_deepthink,
                         status_callback=update_status
                     )
                     

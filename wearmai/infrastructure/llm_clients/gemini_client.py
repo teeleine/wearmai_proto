@@ -62,7 +62,8 @@ class GeminiClient(BaseLLMClient):
         max_output_tokens: int | None = None,
         temperature: float | None = None,
         top_p: float | None = None,
-        thinking_budget: int | None = None
+        thinking_budget: int | None = None,
+        thinking_config: dict | None = None
     ) -> str:
         """
         Streaming call to Gemini. Writes chunks to stream_box.markdown.
@@ -79,6 +80,9 @@ class GeminiClient(BaseLLMClient):
         if thinking_budget is not None:
             config_kwargs['thinking_config'] = ThinkingConfig(thinking_budget=thinking_budget)
             log.info("thinking_budget_used", budget=thinking_budget)
+        elif thinking_config is not None:
+            config_kwargs['thinking_config'] = ThinkingConfig(**thinking_config)
+            log.info("thinking_config_used", config=thinking_config)
 
         config = GenerateContentConfig(**config_kwargs)
 
@@ -90,11 +94,22 @@ class GeminiClient(BaseLLMClient):
         )
 
         for chunk in stream:
-            if chunk.text:
+            # Handle thinking output if available
+            if hasattr(chunk, 'candidates') and chunk.candidates:
+                for part in chunk.candidates[0].content.parts:
+                    if not part.text:
+                        continue
+                    elif hasattr(part, 'thought') and part.thought:
+                        # Don't add thoughts to final response, but update stream box
+                        stream_box.markdown(final_response + "\n\n💭 " + part.text + "\n\n▌")
+                    else:
+                        final_response += part.text
+                        stream_box.markdown(final_response + "▌")
+            # Regular text output
+            elif hasattr(chunk, 'text') and chunk.text:
                 final_response += chunk.text
-                # small sleep for smoother cursor effect
-                sleep(0.002)
-                stream_box.markdown(final_response + '▌')
+                stream_box.markdown(final_response + "▌")
+                
         # final render without cursor
         stream_box.markdown(final_response)
         return final_response
