@@ -182,7 +182,7 @@ with chat_container:
 
 # ----- Quick Actions -----
 quick_actions = {
-    "📊 Analyze my last run": "hi, how are you? respond in 1 sentences",
+    "📊 Analyze my last run": "Can you analyze my last run data and provide detailed insights about my performance?",
     "🎯 Create a 4-week plan": "Can you create a personalized 4-week running plan tailored to my current fitness level?",
     "🏃‍♂️ Analyze run technique": "Can you analyze my running technique and provide specific recommendations for improvement?",
     "🚨 Injury risk assessment": "Can you perform a comprehensive injury risk assessment based on my running data and patterns?",
