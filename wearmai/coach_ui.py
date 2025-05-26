@@ -121,16 +121,12 @@ def process_message(user_query: str):
                                     and len(stripped.split()) < 10
                                 ):
                                     current_section = stripped
-                                    thoughts_content = f"⭐ The model's thoughts will be shown below\n\n## {current_section}\n\n"
+                                    thoughts_content += f"## {current_section}\n\n"
                                 else:
                                     if current_section:
-                                        thoughts_content = (
-                                            f"⭐ The model's thoughts will be shown below\n\n## {current_section}\n\n"
-                                            + part
-                                            + "\n\n"
-                                        )
+                                        thoughts_content += f"{part}\n\n"
                                     else:
-                                        thoughts_content = f"⭐ The model's thoughts will be shown below\n\n{part}\n\n"
+                                        thoughts_content += f"{part}\n\n"
                                 thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
                         else:
                             status_box.update(label=msg, state="running")
