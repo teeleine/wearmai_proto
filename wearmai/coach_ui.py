@@ -91,6 +91,7 @@ def process_message(user_query: str):
     with chat_container:  # Use the chat container for assistant messages
         with st.chat_message("assistant"):
             thinking_expander = None
+            thoughts_placeholder = None  # NEW: placeholder for thoughts content
             thoughts_content = ""
             thoughts_seen = set()
             current_section = None
@@ -99,6 +100,7 @@ def process_message(user_query: str):
 
             if is_deep:
                 thinking_expander = st.expander("✨ See what I'm thinking...", expanded=False)
+                thoughts_placeholder = thinking_expander.empty()  # NEW: create single placeholder
 
             final_answer_ui = st.empty()
 
@@ -111,7 +113,7 @@ def process_message(user_query: str):
 
                     def status_cb(msg: str):
                         nonlocal thoughts_content, current_section, has_shown_initial_message
-                        if msg.startswith("Thinking:") and thinking_expander:
+                        if msg.startswith("Thinking:") and thoughts_placeholder:  # Changed to check thoughts_placeholder
                             part = msg[len("Thinking:") :].lstrip()
                             stripped = part.strip()
                             
@@ -137,8 +139,8 @@ def process_message(user_query: str):
                             else:
                                 thoughts_content += f"{part}\n\n"
                                 
-                            # Update the expander with new content
-                            thinking_expander.markdown(thoughts_content, unsafe_allow_html=True)
+                            # Update the placeholder with new content instead of the expander
+                            thoughts_placeholder.markdown(thoughts_content, unsafe_allow_html=True)
                         else:
                             status_box.update(label=msg, state="running")
 
