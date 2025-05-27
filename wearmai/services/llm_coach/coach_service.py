@@ -222,7 +222,6 @@ class CoachService():
         try:
             response_json = Box(json.loads(output))
             code_snippet = response_json["code_snippet"]
-            log.info("code_snippet", code_snippet=code_snippet)
             # Execute the code snippet in a safe context to get the figure
             local_dict = {"px": px}
             exec(f"fig = {code_snippet}", {"px": px}, local_dict)
