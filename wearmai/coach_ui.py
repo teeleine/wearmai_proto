@@ -218,13 +218,17 @@ if st.session_state.show_quick_actions and len(st.session_state.messages) == 1:
 # ----- Mode Selection and Chat Input -----
 mode_col, chat_col = st.columns([1, 3])
 with mode_col:
-    sel = st.selectbox(
+    new_mode = st.selectbox(
         "Mode",
-        ["⚡ Flash (quick)", "🧠 Deepthink (complex)"],
+        ["Flash", "Deepthink"],
         index=0 if st.session_state.mode == "Flash" else 1,
-        label_visibility="collapsed",
+        format_func=lambda x: f"{'⚡' if x == 'Flash' else '🧠'} {x} ({'quick' if x == 'Flash' else 'complex'})",
+        label_visibility="collapsed"
     )
-    st.session_state.mode = sel.split(" ")[1]
+    
+    if new_mode != st.session_state.mode:
+        st.session_state.mode = new_mode
+        st.rerun()
 
 with chat_col:
     # Chat input using st.chat_input
