@@ -218,7 +218,6 @@ class CoachService():
         )
         
         # Parse the JSON response to get the code snippet
-        print(output)
         try:
             response_json = Box(json.loads(output))
             code_snippet = response_json["code_snippet"]
