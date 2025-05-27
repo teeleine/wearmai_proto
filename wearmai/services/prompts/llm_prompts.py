@@ -160,6 +160,7 @@ class LLMPrompts:
         * **Focus on Key Points:** Prioritize the most important insights and recommendations.
 
         ---
+        
         ## Exemplar Flash Response (Last Run Analysis)
 
         *This example illustrates the desired structure, depth, grounding, and handling of data for a query like: "Can you analyze my last run data and provide insights about my performance?" Assume `raw_run_data` for a 3km run on 10 Nov 2024 and `user_profile` containing long-term averages are provided.*
@@ -167,22 +168,22 @@ class LLMPrompts:
         ```text
         Hi [User Name]! I've reviewed your 10 Nov 2024 run (3 km) data and compared it with your long-term averages.
 
-        KEY TAKEAWAYS
+        # Key Takeaways
         • Your pace varied significantly (81→63→99 units), creating inefficient energy usage compared to your typical 5-8% variation.
         • Mechanics show good left-right symmetry, but moderate pelvic wobble and increased rear-foot pronation at higher speeds.
 
-        ====================
+        ---
 
-        PACING ANALYSIS
+        # Pacing Analysis
         Your pace dropped 22% in km 1, then jumped 57% in km 2. This uneven pacing raises oxygen cost and reduces efficiency, as established running economy principles show smoother pacing improves overall energy cost.
 
-        BIOMECHANICS OVERVIEW
+        # Biomechanics Overview
         • Hip mechanics: Excellent symmetry (<0.5° difference) with flexion at 12-14° (matching your average of 13°).
         • Knee flexion: Normal values of -38.5° to -42.4°, within typical recreational runner range.
         • Ankle/foot: Rear-foot pronation at 8.5-9.0° (slightly above your 7.5° average), which increases with pace. This is moderately high but not immediately concerning.
         • Pelvic control: Side-to-side movement (0.70-0.82° SD) indicates some wobble, consistent with your history but above elite stability standards.
 
-        RECOMMENDATIONS
+        # Recommendations
         1. Practice Even Pacing: Run 3-4 km progressions with <3% per-km variance to improve economy and address the observed fluctuations.
 
         2. Core & Hip Strengthening: Twice weekly side planks and single-leg exercises to improve pelvic stability, which exercise science links to reduced injury risk.
@@ -203,48 +204,52 @@ class LLMPrompts:
         ```text
         Hi [User Name]! Based on your biomechanics data and training history, I've outlined a 16-week Amsterdam Marathon plan designed to build on your strengths while addressing potential issues.
 
-        KEY TAKEAWAY
+        # Key Takeaway
         Your balanced mechanics and consistent running habit provide a good foundation. We'll focus on gradually increasing volume, adding marathon-specific workouts, and incorporating targeted strength work to address your mild pelvic instability.
 
-        ====================
+        ---
 
-        CURRENT STATUS & APPROACH
+        # Current Status & Approach
         • Your symmetrical gait with moderate pronation (8-9°) shows no major mechanical issues.
         • Pelvic stability data (0.7-0.9° wobble) indicates room for improvement through targeted strength work.
         • Current volume (~21km/week from 23 short runs) needs strategic building toward marathon-appropriate levels.
         • Following established periodization principles, we'll use four 4-week blocks to build safely.
 
-        16-WEEK PLAN STRUCTURE
-        Weeks 1-4: Base Building (32→40 km/week)
+        ---
+
+        # 16-Week Plan Structure
+        ## Weeks 1-4: Base Building (32→40 km/week)
         • Long runs progressing 12→18 km
         • Form drills and strides once weekly
         • Twice weekly strength (hip/core focus)
 
-        Weeks 5-8: Marathon-Specific (42→50 km/week)
+        ---
+
+        ## Weeks 5-8: Marathon-Specific (42→50 km/week)
         • Long runs 20→26 km with marathon pace segments
         • Weekly tempo runs: 2×4 km @ goal pace
         • Reduced but heavier strength work
 
-        Weeks 9-12: Peak Volume (52→60 km/week)
+        ## Weeks 9-12: Peak Volume (52→60 km/week)
         • Peak long runs of 30-34 km
         • Marathon-pace workouts: 3×5 km @ MP
         • Hill repeats for strength/form
 
-        Weeks 13-16: Taper (48→24 km/week)
+        ## Weeks 13-16: Taper (48→24 km/week)
         • Gradually reduced volume
         • Maintained intensity
         • Minimal strength work
 
-        WEEKLY TEMPLATE (Example: Week 7)
-        Mon: Strength + 6 km recovery
-        Tue: Tempo 2×4 km @ marathon pace (14 km total)
-        Wed: Easy 8 km
-        Thu: Hill repeats (9 km total)
-        Fri: Rest
-        Sat: Long run 22 km (last 6 km @ MP)
-        Sun: Recovery 5 km + strides
+        # Weekly Template (Example: Week 7)
+        - Mon: Strength + 6 km recovery
+        - Tue: Tempo 2×4 km @ marathon pace (14 km total)
+        - Wed: Easy 8 km
+        - Thu: Hill repeats (9 km total)
+        - Fri: Rest
+        - Sat: Long run 22 km (last 6 km @ MP)
+        - Sun: Recovery 5 km + strides
 
-        NEXT STEPS
+        # Next Steps
         1. Confirm your target marathon pace based on recent race times
         2. Adjust schedule to fit your availability
         3. Plan to check in every 2 weeks for data-driven adjustments
