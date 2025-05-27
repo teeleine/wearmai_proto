@@ -1,6 +1,7 @@
 import os
 import django
 from infrastructure.logging import configure_logging
+import plotly.express as px
 
 # Configure Django settings before importing any Django models
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "wearmai.settings")
@@ -88,7 +89,7 @@ def process_message(user_query: str):
         return
 
     # show the assistant bubble
-    with chat_container:  # Use the chat container for assistant messages
+    with chat_container:
         with st.chat_message("assistant"):
             thinking_expander = None
             thoughts_placeholder = None
@@ -103,6 +104,7 @@ def process_message(user_query: str):
                 thoughts_placeholder = thinking_expander.empty()
 
             final_answer_ui = st.empty()
+            plot_placeholder = st.empty()  # Add placeholder for plot
 
             with st.status("Processing your request...", expanded=True) as status_box:
                 try:
@@ -145,7 +147,7 @@ def process_message(user_query: str):
                             status_box.update(label=msg, state="running")
 
                     status_box.update(label="Analyzing your request...", state="running")
-                    final_text = st.session_state.coach_svc.stream_answer(
+                    result = st.session_state.coach_svc.stream_answer(
                         query=user_query,
                         model=LLModels.GEMINI_25_FLASH,
                         stream_box=final_answer_ui,
@@ -154,6 +156,15 @@ def process_message(user_query: str):
                         is_deepthink=is_deep,
                         status_callback=status_cb,
                     )
+
+                    # Check if result is a tuple (response, plot_fig)
+                    if isinstance(result, tuple):
+                        final_text, plot_fig = result
+                        # Display the plot
+                        with plot_placeholder:
+                            st.plotly_chart(plot_fig, use_container_width=True)
+                    else:
+                        final_text = result
 
                     if thinking_expander:
                         if thoughts_seen:

@@ -100,7 +100,7 @@ class LLMPrompts:
         return LLMPrompts._inject_params(system_prompt, data)
     
     @staticmethod
-    def _get_data_visualisation_plot_prompt(data: dict):
+    def _get_data_visualisation_plot_prompt(data: dict) -> str:
         system_prompt = """
         # System Instructions
         You are an expert Data Analytics Assistant specialising in biomechanical data visualization using Plotly Express in Python.
@@ -245,6 +245,7 @@ class LLMPrompts:
         ```
         </inputs>
         """
+
         LLMPrompts._assert_placeholders(system_prompt, data, PromptType.DATA_VISUALISATION_PLOT_PROMPT)
         return LLMPrompts._inject_params(system_prompt, data)
 

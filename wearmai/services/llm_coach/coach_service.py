@@ -3,12 +3,14 @@ from infrastructure.llm_clients.factory import LLMClientFactory, LLModels
 from box import Box
 from core.serializers import RunDetailSerializer
 from core.models import Run
-from services.prompts.structured_outputs import ConversationSummaryOutput, function_determinant_json_format
+from services.prompts.structured_outputs import ConversationSummaryOutput, function_determinant_json_format, plotly_visualisation_output_format
 from services.prompts.llm_prompts import LLMPrompts, PromptType
 import json
 from typing import Callable, Optional
 from services.grounding.linkup_retriever import LinkupGroundingRetriever
 import structlog
+import plotly.express as px
+from ast import literal_eval
 
 log = structlog.get_logger(__name__)
 
@@ -191,6 +193,44 @@ class CoachService():
         self.update_history(query, result)
         return result
     
+    def generate_plot_visualization(self, data: dict, request_message: str):
+        """Generate a Plotly figure based on the data and visualization request."""
+        system_prompt = LLMPrompts.get_prompt(
+            PromptType.DATA_VISUALISATION_PLOT_PROMPT,
+            {
+                "data": data,
+                "user_request": request_message
+            }
+        )
+        
+        client = self.llm_factory.get(LLModels.O4_MINI)
+        log.info("generating plot")
+        output = client.generate(
+            system_prompt,
+            model=LLModels.O4_MINI,
+            reasoning={
+                "effort": "medium"
+            },
+            text={
+            "format": plotly_visualisation_output_format
+            },
+            store=False
+        )
+        
+        # Parse the JSON response to get the code snippet
+        print(output)
+        try:
+            response_json = Box(json.loads(output))
+            code_snippet = response_json["code_snippet"]
+            log.info("code_snippet", code_snippet=code_snippet)
+            # Execute the code snippet in a safe context to get the figure
+            local_dict = {"px": px}
+            exec(f"fig = {code_snippet}", {"px": px}, local_dict)
+            return local_dict["fig"]
+        except Exception as e:
+            log.error("Error generating plot", error=str(e), code_snippet=code_snippet)
+            raise RuntimeError(f"Failed to generate plot: {str(e)}")
+
     def stream_answer(
         self,
         query: str,
@@ -208,6 +248,26 @@ class CoachService():
         log.info("stream_answer", is_deepthink=is_deepthink)
         
         context = self.retrieve_necessary_context(query, status_callback=status_callback, is_deepthink=is_deepthink)
+        
+        # Check if visualization is needed
+        required_functions = self.determine_required_functions(query)
+        plot_fig = None
+        
+        if required_functions.PlotVisualisation_needed:
+            if status_callback:
+                status_callback("Generating visualization...")
+            
+            # Use raw_run_data if available, otherwise use run_summary_data
+            data_for_plot = context.get('raw_run_data', context.get('run_summary_data', '{}'))
+            try:
+                plot_fig = self.generate_plot_visualization(
+                    json.loads(data_for_plot),
+                    required_functions.visualisation_request_message
+                )
+            except Exception as e:
+                log.error("Visualization generation failed", error=str(e))
+                if status_callback:
+                    status_callback(f"Note: Visualization generation failed: {str(e)}")
         
         if status_callback:
             status_callback("Formulating response...")
@@ -234,5 +294,11 @@ class CoachService():
             status_callback=status_callback,
             **kwargs
         )
+        
+        # If we have a plot, add it to the message data
+        if plot_fig:
+            # Return both the response and the plot figure
+            return response, plot_fig
+        
         self.update_history(query, response)
         return response
