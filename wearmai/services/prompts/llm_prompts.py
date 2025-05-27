@@ -1,5 +1,8 @@
 from enum import StrEnum
 from string import Formatter
+from structlog import get_logger
+
+log = get_logger(__name__)
 
 
 class PromptType(StrEnum):
@@ -119,7 +122,7 @@ class LLMPrompts:
         1.  Start directly with the Plotly Express function call (e.g., `px.scatter(...)`, `px.bar(...)`).
         2.  Have its data arguments (like `x`, `y`, `color`, `values`, `names`, `z` for `imshow`) populated with actual Python lists of data (numbers or strings, or a list of lists for `imshow` `z` data). You are responsible for extracting these lists from the input `data` JSON based on the user request and the chosen plot configuration. Do NOT use a DataFrame placeholder like `df`.
         3.  Include a `title` argument with a descriptive title for the plot.
-        4.  Include a `labels` argument. This `labels` dictionary should map the *actual Plotly Express argument names* (e.g., `'x'`, `'y'`, `'color'`, `'z'`, `'color_continuous_scale'` for `imshow`) to readable, human-friendly names for axes, legends, or color bars. For example, `labels={'x': 'Kilometer Segment', 'y': 'Mean Hip Flexion (Left)'}`.
+        4.  Include a `labels` argument. This `labels` dictionary should map the *actual Plotly Express argument names* (e.g., `'x'`, `'y'`, `'color'`, `'z'`, `'color_continuous_scale'` for `imshow`) to readable, human-friendly names for axes, legends, or color bars. For example, `labels={{'x': 'Kilometer Segment', 'y': 'Mean Hip Flexion (Left)'}}`.
 
         **Guidelines for Plot Selection & Code Snippet Generation:**
 
@@ -156,77 +159,77 @@ class LLMPrompts:
         *   **Example 1:**
             **Conceptual Input:**
             ```json
-            {
+            {{
             "data": [ /* list of JSON objects as described above and in the provided sample */ ],
             "user_request": "compare my left- and right-side knee average angles across the three kilometres with a grouped bar chart"
-            }
+            }}
             ```
             **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
             ```json
-            {
+            {{
             "code_snippet": "px.bar(x=['kilometer_0','kilometer_1','kilometer_2','kilometer_0','kilometer_1','kilometer_2'], y=[-40.3707,-38.3796,-42.2445,-40.605,-38.5778,-42.5293], color=['Left','Left','Left','Right','Right','Right'], barmode='group', title='Mean Knee Angle (Left vs Right) Across Kilometers', labels={'x':'Kilometer Segment','y':'Mean Knee Angle (deg)','color':'Knee Side'})"
-            }
+            }}
             ```
 
         *   **Example 2:**
             **Conceptual Input:**
             ```json
-            {
+            {{
             "data": [ /* list of JSON objects as described above and in the provided sample */ ],
             "user_request": "plot speed versus my average hip-flexion standard deviation for each kilometre"
-            }
+            }}
             ```
             **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
             ```json
-            {
+            {{
             "code_snippet": "px.scatter(x=[81.0,63.0,99.0], y=[1.31605,1.24285,1.4007], text=['kilometer_0','kilometer_1','kilometer_2'], title='Speed vs Average Hip Flexion Std per Kilometer', labels={'x':'Speed (km/h)','y':'Avg Hip Flexion Std (deg)'})"
-            }
+            }}
             ```
 
         *   **Example 3:**
             **Conceptual Input:**
             ```json
-            {
+            {{
             "data": [ /* list of JSON objects as described above and in the provided sample */ ],
             "user_request": "make a heat-map of pelvis rotation-std means for left and right sides across the kilometres"
-            }
+            }}
             ```
             **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
             ```json
-            {
+            {{
             "code_snippet": "px.imshow([[1.6139,1.4729,1.4597],[1.6653,1.451,1.4537]], x=['kilometer_0','kilometer_1','kilometer_2'], y=['Left','Right'], color_continuous_scale='Viridis', title='Pelvis Rotation Std Mean Across Kilometers', labels={'x':'Kilometer Segment','y':'Pelvis Side','color':'Rotation Std (deg)'})"
-            }
+            }}
             ```
 
         *   **Example 4:**
             **Conceptual Input:**
             ```json
-            {
+            {{
             "data": [ /* list of JSON objects as described above and in the provided sample */ ],
             "user_request": "show box-plots of the left ankle subtalar-angle averages (min, Q1, median, Q3, max) for each kilometre"
-            }
+            }}
             ```
             **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
             ```json
-            {
+            {{
             "code_snippet": "px.box(x=['kilometer_0','kilometer_0','kilometer_0','kilometer_0','kilometer_0','kilometer_1','kilometer_1','kilometer_1','kilometer_1','kilometer_1','kilometer_2','kilometer_2','kilometer_2','kilometer_2','kilometer_2'], y=[0.78,3.48,7.75,13.95,20.6,0.99,4.1875,7.905,13.095,19.01,0.19,2.6875,7.91,13.535,20.57], title='Left Ankle Subtalar Angle Avg Distribution per Kilometer', labels={'x':'Kilometer Segment','y':'Subtalar Angle Avg (deg)'})"
-            }
+            }}
             ```
 
         ---
         **Conceptual Input Format to You:**
         ```json
-        {
+        {{
         "data": [ /* list of JSON objects as described above and in the provided sample */ ],
         "user_request": "A one-sentence message from the user.",
-        }
+        }}
         ```
 
         **Example of Final Output Format (this is the exact JSON format you MUST return):**
         ```json
-        {
+        {{
         "code_snippet": "px.line(x=['kilometer_0', 'kilometer_1', 'kilometer_2'], y=[-4.80165, -3.2467, -4.3695], title='Average Pelvic Tilt Across Kilometers', labels={'x': 'Kilometer Segment', 'y': 'Average Pelvic Tilt (deg)'})"
-        }
+        }}
         ```
         *(Note: The lists in the `code_snippet` value in the example output above are for illustration of format. You will generate these lists by extracting actual data from the input JSON based on the user request.)*
 
@@ -246,6 +249,11 @@ class LLMPrompts:
         </inputs>
         """
 
+        from string import Formatter
+        placeholders = {p[1] for p in Formatter().parse(system_prompt) if p[1] is not None}
+        log.info(f"DEBUG: Found placeholders: {placeholders}")
+        log.info(f"DEBUG: Data keys: {list(data.keys()) if data else 'None'}")
+        log.info(f"DEBUG: Missing: {placeholders - data.keys() if data else 'data is None'}")
         LLMPrompts._assert_placeholders(system_prompt, data, PromptType.DATA_VISUALISATION_PLOT_PROMPT)
         return LLMPrompts._inject_params(system_prompt, data)
 
