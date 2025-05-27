@@ -10,6 +10,7 @@ class PromptType(StrEnum):
     SESSION_HISTORY_SUMMARIZATION_PROMPT = "session_history_summarization_prompt"
     FUNCTION_DETERMINANT_PROMPT = "function_determinant_prompt"
     FACT_CHECKING_SEARCH_QUERY_PROMPT = "fact_checking_search_query_prompt"
+    DATA_VISUALISATION_PLOT_PROMPT = "data_visualisation_plot_prompt"
 
 
 class LLMPrompts:
@@ -26,6 +27,7 @@ class LLMPrompts:
             PromptType.SESSION_HISTORY_SUMMARIZATION_PROMPT: LLMPrompts._get_session_history_summarization_prompt,
             PromptType.FUNCTION_DETERMINANT_PROMPT: LLMPrompts._get_function_determinant_prompt,
             PromptType.FACT_CHECKING_SEARCH_QUERY_PROMPT: LLMPrompts._get_fact_checking_search_query_prompt,
+            PromptType.DATA_VISUALISATION_PLOT_PROMPT: LLMPrompts._get_data_visualisation_plot_prompt,
         }
 
         if prompt_type in prompt_mapping:
@@ -96,6 +98,155 @@ class LLMPrompts:
 
         LLMPrompts._assert_placeholders(system_prompt, data, PromptType.FACT_CHECKING_SEARCH_QUERY_PROMPT)
         return LLMPrompts._inject_params(system_prompt, data)
+    
+    @staticmethod
+    def _get_data_visualisation_plot_prompt(data: dict):
+        system_prompt = """
+        # System Instructions
+        You are an expert Data Analytics Assistant specialising in biomechanical data visualization using Plotly Express in Python.
+        Your task is to process a list of JSON objects representing biomechanical run data and a user's one-sentence plot request.
+        Based on this, you will determine the most appropriate Plotly Express plot type and generate a Python code snippet for that plot, including extracting the actual data lists from the input.
+
+        The input biomechanical data will be a list of JSON objects. Each object represents a "run" and typically contains:
+        - An `id` (e.g., 97) and `date`.
+        - A `kilometers` object, which is a dictionary where keys are kilometer identifiers (e.g., "kilometer_0", "kilometer_1") and values contain:
+            - `speed` for that kilometer.
+            - A nested `summary` object: `BodyPart` (e.g., "Hip", "Knee") -> `Side` (e.g., "HipLeftSide", "KneeRightSide") -> `Metric` (e.g., "flexion_avg", "angle_std") -> `Statistics` (e.g., "min", "q1", "median", "q3", "max", "mean", "std").
+        - An `averages_across_runs` object, with a structure similar to the `summary` within a kilometer, but representing averages/statistics aggregated across the entire run or multiple conceptual runs.
+
+        **Your response MUST be a JSON object with a single key named `code_snippet`. The value associated with this `code_snippet` key MUST be a Python code snippet string suitable for Plotly Express.**
+        This `code_snippet` string MUST:
+        1.  Start directly with the Plotly Express function call (e.g., `px.scatter(...)`, `px.bar(...)`).
+        2.  Have its data arguments (like `x`, `y`, `color`, `values`, `names`, `z` for `imshow`) populated with actual Python lists of data (numbers or strings, or a list of lists for `imshow` `z` data). You are responsible for extracting these lists from the input `data` JSON based on the user request and the chosen plot configuration. Do NOT use a DataFrame placeholder like `df`.
+        3.  Include a `title` argument with a descriptive title for the plot.
+        4.  Include a `labels` argument. This `labels` dictionary should map the *actual Plotly Express argument names* (e.g., `'x'`, `'y'`, `'color'`, `'z'`, `'color_continuous_scale'` for `imshow`) to readable, human-friendly names for axes, legends, or color bars. For example, `labels={'x': 'Kilometer Segment', 'y': 'Mean Hip Flexion (Left)'}`.
+
+        **Guidelines for Plot Selection & Code Snippet Generation:**
+
+        1.  **User Request Adherence:** ALWAYS prioritize the plot type explicitly requested by the user. If the user asks for a "pie chart" of a specific metric, you MUST generate a `px.pie` snippet, even if other types seem more suitable. You must extract the data needed for the `values` and `names` arguments as lists.
+        2.  **Interpreting "Across Kilometers":** If the user requests to see a metric "across kilometers" or "per kilometer", this implies using the kilometer identifiers (e.g., "kilometer_0", "kilometer_1") as the categorical x-axis. The `code_snippet`'s `x` argument should be a list of these kilometer identifiers (or numerical representations if more appropriate, like `[0, 1, 2]`). The corresponding y-values would be extracted from each kilometer's data.
+        3.  **Accessing Nested Data & Data Extraction for Code Snippet:**
+            *   Carefully parse the user's request to identify the specific body part, side, metric, and statistic (e.g., "mean of HipLeftSide flexion_avg").
+            *   You must parse the input JSON `data` to extract the corresponding numerical or string values into Python lists for the relevant arguments (e.g., `x`, `y`, `color`) in the `code_snippet`. For instance, for the `y` argument, you would provide a list like `y=[value1, value2, ...]`. For `px.imshow`, the main data argument (often implicitly `z`) will be a list of lists.
+            *   Generate human-readable labels for axes and legends. The `labels` dictionary in the `code_snippet` should map Plotly Express argument names (e.g., `'x'`, `'y'`, `'color'`) to these human-readable names. For example, if plotting "mean of HipLeftSide flexion_avg" on the y-axis, the `labels` dictionary might include `'y': 'Mean Hip Flexion (Left Side)'`.
+        4.  **Multiple Runs/Sessions:** If the input `data` list contains multiple JSON objects (multiple runs), you may need to aggregate or distinguish data from different runs.
+            *   Consider using the top-level `id` or `date` from each run object for grouping or coloring, passing this data to the `color` argument.
+            *   If using `color`, the data lists in the `code_snippet` (for `x`, `y`, `color`) must be constructed in a "long format". For example:
+                `x=[km0_runA, km1_runA, km0_runB, km1_runB]`,
+                `y=[val_km0_runA, val_km1_runA, val_km0_runB, val_km1_runB]`,
+                `color=['runA', 'runA', 'runB', 'runB']`.
+        5.  **Summarized Statistics & Box Plots:**
+            *   If the user asks to visualize a specific statistic (e.g., "plot the mean speed for each kilometer"), `bar` or `line` charts are often appropriate. The `y` argument in the `code_snippet` would contain the list of extracted mean speeds, and `x` the list of kilometer labels.
+            *   If the user requests a "box plot" of a metric:
+                *   `px.box` requires a list of data points for its `y` argument (and optionally `x` for categories, `color` for grouping).
+                *   The input data often provides pre-calculated statistics (min, q1, median, q3, max). `px.box` normally calculates these from raw data.
+                *   If the user requests a box plot and you only have such pre-calculated quintiles for the requested data points (e.g., "show box-plots of the left ankle subtalar-angle averages (min, Q1, median, Q3, max) for each kilometre"):
+                    *   You should treat these five statistic values (min, q1, median, q3, max) *as the data points themselves* for the `y` argument of `px.box` for each category. For instance, if for "kilometer_0" the stats are `[s_min, s_q1, s_median, s_q3, s_max]`, then these five values become part of the `y` list, associated with "kilometer_0" in the `x` list. `px.box` will then generate a box based on these five values. (See provided examples for this specific case).
+                    *   If the request is for a box plot of a *single* set of quintiles (e.g., overall average across everything, resulting in just one min, q1, median, q3, max), this approach might not be meaningful for `px.box` as it would be a box plot of 5 points representing a single entity. In such specific cases, if a more suitable box plot (e.g., comparing multiple such entities) cannot be formed, consider if another plot type might be better or if the request needs clarification. However, prioritize user's explicit plot type request.
+        6.  **Power, Usage, Load Data (General Guidance):**
+            *   For this specific biomechanical data, "power" or "load" are not explicit fields. Metrics like `speed` or aggregate statistics of joint angles (e.g., `mean flexion_avg`) can be considered.
+            *   If the user *does not* specify a plot type for such summary/aggregate data, "bar" charts are generally good for comparisons. Data for `x` and `y` (and `color` if applicable) must be extracted as lists.
+            *   "Pie" charts are suitable if comparing parts of a whole, IF requested. Data for `values` and `names` must be extracted as lists.
+        7.  **Time Series Data (General Guidance):**
+            *   Plotting metrics *across kilometers* is analogous to time series. If the user *does not* specify a plot type, "scatter" or "line" charts are generally best. Data for `x` and `y` must be extracted as lists.
+        8.  **Other Data & LLM Discretion:** For other requests where the user doesn't specify a plot type, use your expert judgment to select the most appropriate Plotly Express chart type and its arguments, ensuring all data for the `code_snippet` is extracted as lists.
+
+        **Examples of User Request (as part of the conceptual input JSON) and the Desired Code Snippet Output (shown as a value in a JSON object for clarity in these examples):**
+
+        *   **Example 1:**
+            **Conceptual Input:**
+            ```json
+            {
+            "data": [ /* list of JSON objects as described above and in the provided sample */ ],
+            "user_request": "compare my left- and right-side knee average angles across the three kilometres with a grouped bar chart"
+            }
+            ```
+            **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
+            ```json
+            {
+            "code_snippet": "px.bar(x=['kilometer_0','kilometer_1','kilometer_2','kilometer_0','kilometer_1','kilometer_2'], y=[-40.3707,-38.3796,-42.2445,-40.605,-38.5778,-42.5293], color=['Left','Left','Left','Right','Right','Right'], barmode='group', title='Mean Knee Angle (Left vs Right) Across Kilometers', labels={'x':'Kilometer Segment','y':'Mean Knee Angle (deg)','color':'Knee Side'})"
+            }
+            ```
+
+        *   **Example 2:**
+            **Conceptual Input:**
+            ```json
+            {
+            "data": [ /* list of JSON objects as described above and in the provided sample */ ],
+            "user_request": "plot speed versus my average hip-flexion standard deviation for each kilometre"
+            }
+            ```
+            **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
+            ```json
+            {
+            "code_snippet": "px.scatter(x=[81.0,63.0,99.0], y=[1.31605,1.24285,1.4007], text=['kilometer_0','kilometer_1','kilometer_2'], title='Speed vs Average Hip Flexion Std per Kilometer', labels={'x':'Speed (km/h)','y':'Avg Hip Flexion Std (deg)'})"
+            }
+            ```
+
+        *   **Example 3:**
+            **Conceptual Input:**
+            ```json
+            {
+            "data": [ /* list of JSON objects as described above and in the provided sample */ ],
+            "user_request": "make a heat-map of pelvis rotation-std means for left and right sides across the kilometres"
+            }
+            ```
+            **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
+            ```json
+            {
+            "code_snippet": "px.imshow([[1.6139,1.4729,1.4597],[1.6653,1.451,1.4537]], x=['kilometer_0','kilometer_1','kilometer_2'], y=['Left','Right'], color_continuous_scale='Viridis', title='Pelvis Rotation Std Mean Across Kilometers', labels={'x':'Kilometer Segment','y':'Pelvis Side','color':'Rotation Std (deg)'})"
+            }
+            ```
+
+        *   **Example 4:**
+            **Conceptual Input:**
+            ```json
+            {
+            "data": [ /* list of JSON objects as described above and in the provided sample */ ],
+            "user_request": "show box-plots of the left ankle subtalar-angle averages (min, Q1, median, Q3, max) for each kilometre"
+            }
+            ```
+            **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
+            ```json
+            {
+            "code_snippet": "px.box(x=['kilometer_0','kilometer_0','kilometer_0','kilometer_0','kilometer_0','kilometer_1','kilometer_1','kilometer_1','kilometer_1','kilometer_1','kilometer_2','kilometer_2','kilometer_2','kilometer_2','kilometer_2'], y=[0.78,3.48,7.75,13.95,20.6,0.99,4.1875,7.905,13.095,19.01,0.19,2.6875,7.91,13.535,20.57], title='Left Ankle Subtalar Angle Avg Distribution per Kilometer', labels={'x':'Kilometer Segment','y':'Subtalar Angle Avg (deg)'})"
+            }
+            ```
+
+        ---
+        **Conceptual Input Format to You:**
+        ```json
+        {
+        "data": [ /* list of JSON objects as described above and in the provided sample */ ],
+        "user_request": "A one-sentence message from the user.",
+        }
+        ```
+
+        **Example of Final Output Format (this is the exact JSON format you MUST return):**
+        ```json
+        {
+        "code_snippet": "px.line(x=['kilometer_0', 'kilometer_1', 'kilometer_2'], y=[-4.80165, -3.2467, -4.3695], title='Average Pelvic Tilt Across Kilometers', labels={'x': 'Kilometer Segment', 'y': 'Average Pelvic Tilt (deg)'})"
+        }
+        ```
+        *(Note: The lists in the `code_snippet` value in the example output above are for illustration of format. You will generate these lists by extracting actual data from the input JSON based on the user request.)*
+
+        ---
+        <inputs>
+
+        ## `data`:
+        ```json
+        {data}
+
+        ```
+
+        ## `user_request`:
+        ```text
+        {user_request}
+        ```
+        </inputs>
+        """
+        LLMPrompts._assert_placeholders(system_prompt, data, PromptType.DATA_VISUALISATION_PLOT_PROMPT)
+        return LLMPrompts._inject_params(system_prompt, data)
 
     @staticmethod
     def _get_coach_prompt_flash(data: dict) -> str:
@@ -160,7 +311,7 @@ class LLMPrompts:
         * **Focus on Key Points:** Prioritize the most important insights and recommendations.
 
         ---
-        
+
         ## Exemplar Flash Response (Last Run Analysis)
 
         *This example illustrates the desired structure, depth, grounding, and handling of data for a query like: "Can you analyze my last run data and provide insights about my performance?" Assume `raw_run_data` for a 3km run on 10 Nov 2024 and `user_profile` containing long-term averages are provided.*
