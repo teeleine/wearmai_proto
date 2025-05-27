@@ -118,7 +118,7 @@ Ready to bring your AI coach to life? Follow these steps:
 8.  **🧠 Vectorize the Knowledge Base: 🧠**
     This command processes the knowledge base file (e.g., `wearmai/development/books/Sports Rehab Injury Prevention_clean.md`), cleans it, chunks it, and loads it into your Weaviate instance.
     ```bash
-    python manage.py index_knowledge_base --debug
+    python wearmai/manage.py index_knowledge_base --debug # make sure to call this from the base directory
     ```
     *(Run this if you need to populate or update the knowledge base. The `--debug` flag provides verbose output.)*
 
