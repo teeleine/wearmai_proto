@@ -27,31 +27,39 @@ function_determinant_json_format = {
         "properties": {
           "GenerateRunSummary_needed": {
             "type": "boolean",
-            "description": "Indicates if a run summary needs to be generated."
+            "description": "Indicates if a run summary needs to be generated (for long-term analysis or direct summary requests)."
           },
           "GetRawRunData_needed": {
             "type": "boolean",
-            "description": "Indicates if raw run data is required."
+            "description": "Indicates if raw run data is required (for detailed analysis of specific runs or short periods)."
           },
           "QueryKnowledgeBase_needed": {
             "type": "boolean",
-            "description": "Indicates if a query to the knowledge base is needed."
+            "description": "Indicates if a query to the knowledge base is needed for general information."
           },
           "GetGroundingAndFactCheckingData_needed": {
             "type": "boolean",
-            "description": "Indicates if grounding and fact-checking data is required."
+            "description": "Indicates if grounding and fact-checking data from scientific literature is required."
+          },
+          "PlotVisualisation_needed": {
+            "type": "boolean",
+            "description": "Indicates if the user has requested a data visualisation (e.g., plot, chart, graph)."
           },
           "query": {
             "type": "string",
-            "description": "The main query string to execute."
+            "description": "The query string for the knowledge base if QueryKnowledgeBase_needed is true, otherwise an empty string."
           },
           "fact_checking_query": {
             "type": "string",
-            "description": "The query string specifically for fact-checking purposes."
+            "description": "The query string (as a question) for scientific literature if GetGroundingAndFactCheckingData_needed is true, otherwise an empty string."
+          },
+          "visualisation_request_message": {
+            "type": "string",
+            "description": "The user's specific one-sentence request for the visualisation if PlotVisualisation_needed is true, otherwise an empty string."
           },
           "run_ids": {
             "type": "array",
-            "description": "A list of run IDs associated with the request.",
+            "description": "A list of run IDs relevant to the request (for GenerateRunSummary_needed, GetRawRunData_needed, or PlotVisualisation_needed), empty if no specific runs are targeted.",
             "items": {
               "type": "number"
             }
@@ -62,8 +70,10 @@ function_determinant_json_format = {
           "GetRawRunData_needed",
           "QueryKnowledgeBase_needed",
           "GetGroundingAndFactCheckingData_needed",
+          "PlotVisualisation_needed",
           "query",
           "fact_checking_query",
+          "visualisation_request_message",
           "run_ids"
         ],
         "additionalProperties": False
