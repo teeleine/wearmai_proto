@@ -167,7 +167,7 @@ class LLMPrompts:
             **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
             ```json
             {{
-            "code_snippet": "px.bar(x=['kilometer_0','kilometer_1','kilometer_2','kilometer_0','kilometer_1','kilometer_2'], y=[-40.3707,-38.3796,-42.2445,-40.605,-38.5778,-42.5293], color=['Left','Left','Left','Right','Right','Right'], barmode='group', title='Mean Knee Angle (Left vs Right) Across Kilometers', labels={'x':'Kilometer Segment','y':'Mean Knee Angle (deg)','color':'Knee Side'})"
+            "code_snippet": "px.bar(x=['kilometer_0','kilometer_1','kilometer_2','kilometer_0','kilometer_1','kilometer_2'], y=[-40.3707,-38.3796,-42.2445,-40.605,-38.5778,-42.5293], color=['Left','Left','Left','Right','Right','Right'], barmode='group', title='Mean Knee Angle (Left vs Right) Across Kilometers', labels={{'x':'Kilometer Segment','y':'Mean Knee Angle (deg)','color':'Knee Side'}})"
             }}
             ```
 
@@ -182,7 +182,7 @@ class LLMPrompts:
             **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
             ```json
             {{
-            "code_snippet": "px.scatter(x=[81.0,63.0,99.0], y=[1.31605,1.24285,1.4007], text=['kilometer_0','kilometer_1','kilometer_2'], title='Speed vs Average Hip Flexion Std per Kilometer', labels={'x':'Speed (km/h)','y':'Avg Hip Flexion Std (deg)'})"
+            "code_snippet": "px.scatter(x=[81.0,63.0,99.0], y=[1.31605,1.24285,1.4007], text=['kilometer_0','kilometer_1','kilometer_2'], title='Speed vs Average Hip Flexion Std per Kilometer', labels={{'x':'Speed (km/h)','y':'Avg Hip Flexion Std (deg)'}})"
             }}
             ```
 
@@ -197,7 +197,7 @@ class LLMPrompts:
             **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
             ```json
             {{
-            "code_snippet": "px.imshow([[1.6139,1.4729,1.4597],[1.6653,1.451,1.4537]], x=['kilometer_0','kilometer_1','kilometer_2'], y=['Left','Right'], color_continuous_scale='Viridis', title='Pelvis Rotation Std Mean Across Kilometers', labels={'x':'Kilometer Segment','y':'Pelvis Side','color':'Rotation Std (deg)'})"
+            "code_snippet": "px.imshow([[1.6139,1.4729,1.4597],[1.6653,1.451,1.4537]], x=['kilometer_0','kilometer_1','kilometer_2'], y=['Left','Right'], color_continuous_scale='Viridis', title='Pelvis Rotation Std Mean Across Kilometers', labels={{'x':'Kilometer Segment','y':'Pelvis Side','color':'Rotation Std (deg)'}})"
             }}
             ```
 
@@ -212,7 +212,7 @@ class LLMPrompts:
             **Desired Output (Illustrating the `code_snippet` content within the JSON response):**
             ```json
             {{
-            "code_snippet": "px.box(x=['kilometer_0','kilometer_0','kilometer_0','kilometer_0','kilometer_0','kilometer_1','kilometer_1','kilometer_1','kilometer_1','kilometer_1','kilometer_2','kilometer_2','kilometer_2','kilometer_2','kilometer_2'], y=[0.78,3.48,7.75,13.95,20.6,0.99,4.1875,7.905,13.095,19.01,0.19,2.6875,7.91,13.535,20.57], title='Left Ankle Subtalar Angle Avg Distribution per Kilometer', labels={'x':'Kilometer Segment','y':'Subtalar Angle Avg (deg)'})"
+            "code_snippet": "px.box(x=['kilometer_0','kilometer_0','kilometer_0','kilometer_0','kilometer_0','kilometer_1','kilometer_1','kilometer_1','kilometer_1','kilometer_1','kilometer_2','kilometer_2','kilometer_2','kilometer_2','kilometer_2'], y=[0.78,3.48,7.75,13.95,20.6,0.99,4.1875,7.905,13.095,19.01,0.19,2.6875,7.91,13.535,20.57], title='Left Ankle Subtalar Angle Avg Distribution per Kilometer', labels={{'x':'Kilometer Segment','y':'Subtalar Angle Avg (deg)'}})"
             }}
             ```
 
@@ -228,7 +228,7 @@ class LLMPrompts:
         **Example of Final Output Format (this is the exact JSON format you MUST return):**
         ```json
         {{
-        "code_snippet": "px.line(x=['kilometer_0', 'kilometer_1', 'kilometer_2'], y=[-4.80165, -3.2467, -4.3695], title='Average Pelvic Tilt Across Kilometers', labels={'x': 'Kilometer Segment', 'y': 'Average Pelvic Tilt (deg)'})"
+        "code_snippet": "px.line(x=['kilometer_0', 'kilometer_1', 'kilometer_2'], y=[-4.80165, -3.2467, -4.3695], title='Average Pelvic Tilt Across Kilometers', labels={{'x': 'Kilometer Segment', 'y': 'Average Pelvic Tilt (deg)'}})"
         }}
         ```
         *(Note: The lists in the `code_snippet` value in the example output above are for illustration of format. You will generate these lists by extracting actual data from the input JSON based on the user request.)*
@@ -251,8 +251,6 @@ class LLMPrompts:
 
         from string import Formatter
         placeholders = {p[1] for p in Formatter().parse(system_prompt) if p[1] is not None}
-        log.info(f"DEBUG: Found placeholders: {placeholders}")
-        log.info(f"DEBUG: Data keys: {list(data.keys()) if data else 'None'}")
         log.info(f"DEBUG: Missing: {placeholders - data.keys() if data else 'data is None'}")
         LLMPrompts._assert_placeholders(system_prompt, data, PromptType.DATA_VISUALISATION_PLOT_PROMPT)
         return LLMPrompts._inject_params(system_prompt, data)
