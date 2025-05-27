@@ -20,7 +20,7 @@ class FunctionDeterminantOutput(BaseModel):
 
 function_determinant_json_format = {
       "type": "json_schema",
-      "name": "run_summary_request",
+      "name": "function_determinant_output",
       "strict": True,
       "schema": {
         "type": "object",
@@ -69,4 +69,23 @@ function_determinant_json_format = {
         "additionalProperties": False
       }
     }
+
+plotly_visualisation_output_format = {
+  "type": "json_schema",
+  "name": "plotly_express_code_snippet_output",
+  "strict": True,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "code_snippet": {
+        "type": "string",
+        "description": "A Python code snippet string suitable for direct use with Plotly Express. This snippet MUST start directly with a Plotly Express function call (e.g., px.scatter(...)). It includes data arguments (like x, y, color, values, names, z) populated with actual Python lists of data (numbers, strings, or list of lists for imshow z) extracted from the input JSON. The snippet also includes a 'title' argument with a descriptive plot title, and a 'labels' argument mapping Plotly Express argument names (e.g., 'x', 'y', 'color') to human-readable names for axes, legends, or color bars."
+      }
+    },
+    "required": [
+      "code_snippet"
+    ],
+    "additionalProperties": False
+  }
+}
     
