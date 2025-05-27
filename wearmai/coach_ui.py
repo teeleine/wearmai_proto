@@ -2,6 +2,7 @@ import os
 import django
 from infrastructure.logging import configure_logging
 import plotly.express as px
+import plotly.io  # Add this import for optional JSON serialization
 
 # Configure Django settings before importing any Django models
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "wearmai.settings")
@@ -104,7 +105,7 @@ def process_message(user_query: str):
                 thoughts_placeholder = thinking_expander.empty()
 
             final_answer_ui = st.empty()
-            plot_placeholder = st.empty()  # Add placeholder for plot
+            plot_placeholder = st.empty()
 
             with st.status("Processing your request...", expanded=True) as status_box:
                 try:
@@ -157,13 +158,24 @@ def process_message(user_query: str):
                         status_callback=status_cb,
                     )
 
-                    # Check if result is a tuple (response, plot_fig)
-                    final_text = result
+                    # Initialize message data early
+                    data = {"role": "assistant"}
+
+                    # Handle the result and store any figure
                     if isinstance(result, tuple):
                         final_text, plot_fig = result
-                        # Display the plot
+                        fig_key = f"fig_{len(st.session_state.messages)}"
+                        # Store as JSON string instead of figure object
+                        st.session_state[fig_key] = plot_fig.to_json()
+                        data["plot_key"] = fig_key
+                        
+                        # Display the plot in current context
                         with plot_placeholder:
                             st.plotly_chart(plot_fig, use_container_width=True)
+                    else:
+                        final_text = result
+
+                    data["content"] = final_text
 
                     if thinking_expander:
                         if thoughts_seen:
@@ -173,7 +185,6 @@ def process_message(user_query: str):
 
                     status_box.update(label="Response complete!", state="complete", expanded=False)
 
-                    data = {"role": "assistant", "content": final_text}
                     if is_deep and thoughts_seen:
                         cleaned = thoughts_content.replace("⭐ The model's thoughts will be shown below\n\n", "", 1).strip()
                         if cleaned:
@@ -197,7 +208,17 @@ with chat_container:
             if msg["role"] == "assistant" and msg.get("thoughts_markdown"):
                 with st.expander("✨ See what I was thinking...", expanded=False):
                     st.markdown(msg["thoughts_markdown"], unsafe_allow_html=True)
+            
+            # Main text
             st.markdown(msg["content"])
+            
+            # Re-draw any stored figure
+            if msg["role"] == "assistant" and msg.get("plot_key"):
+                fig_json = st.session_state.get(msg["plot_key"])
+                if fig_json is not None:
+                    # Reconstruct figure from JSON
+                    fig = plotly.io.from_json(fig_json)
+                    st.plotly_chart(fig, use_container_width=True)
 
 # ----- Quick Actions -----
 quick_actions = {
