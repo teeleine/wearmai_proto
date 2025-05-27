@@ -104,8 +104,9 @@ def process_message(user_query: str):
                 thinking_expander = st.expander("✨ See what I'm thinking...", expanded=False)
                 thoughts_placeholder = thinking_expander.empty()
 
-            final_answer_ui = st.empty()
-            plot_placeholder = st.empty()
+            # Create placeholders for plot and text
+            plot_placeholder = st.empty()  # Plot will appear here first
+            final_answer_ui = st.empty()   # Text will stream below it
 
             with st.status("Processing your request...", expanded=True) as status_box:
                 try:
@@ -147,8 +148,12 @@ def process_message(user_query: str):
                         else:
                             status_box.update(label=msg, state="running")
 
+                    # Initialize message data early
+                    data = {"role": "assistant"}
+                    msg_idx = len(st.session_state.messages)
+
                     status_box.update(label="Analyzing your request...", state="running")
-                    result = st.session_state.coach_svc.stream_answer(
+                    final_text = st.session_state.coach_svc.stream_answer(
                         query=user_query,
                         model=LLModels.GEMINI_25_FLASH,
                         stream_box=final_answer_ui,
@@ -156,24 +161,13 @@ def process_message(user_query: str):
                         thinking_budget=0 if st.session_state.mode == "Flash" else None,
                         is_deepthink=is_deep,
                         status_callback=status_cb,
+                        # Add plot callback that shows and stores the figure
+                        plot_callback=lambda fig: (
+                            plot_placeholder.plotly_chart(fig, use_container_width=True),
+                            st.session_state.__setitem__(f"fig_{msg_idx}", fig.to_json()),
+                            data.__setitem__("plot_key", f"fig_{msg_idx}")
+                        ),
                     )
-
-                    # Initialize message data early
-                    data = {"role": "assistant"}
-
-                    # Handle the result and store any figure
-                    if isinstance(result, tuple):
-                        final_text, plot_fig = result
-                        fig_key = f"fig_{len(st.session_state.messages)}"
-                        # Store as JSON string instead of figure object
-                        st.session_state[fig_key] = plot_fig.to_json()
-                        data["plot_key"] = fig_key
-                        
-                        # Display the plot in current context
-                        with plot_placeholder:
-                            st.plotly_chart(plot_fig, use_container_width=True)
-                    else:
-                        final_text = result
 
                     data["content"] = final_text
 

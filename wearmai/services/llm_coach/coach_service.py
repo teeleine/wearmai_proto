@@ -238,12 +238,14 @@ class CoachService():
         query: str,
         model: LLModels,
         stream_box,
+        *,  # Force keyword arguments after this
+        plot_callback: Optional[Callable[[object], None]] = None,  # NEW parameter
         temperature: int | float = 1,
         status_callback: Optional[Callable[[str], None]] = None,
         thinking_budget: Optional[int] = None,
         is_deepthink: bool = False,
         **kwargs
-    ) -> str:
+    ) -> str:  # Now returns just the response string
         if status_callback:
             status_callback("Gathering relevant context...")
         
@@ -255,19 +257,21 @@ class CoachService():
             is_deepthink=is_deepthink
         )
         
+        # Generate plot first if needed
         plot_fig = None
-        
         if required_functions.PlotVisualisation_needed:
             if status_callback:
                 status_callback("Generating visualization...")
             
-            # Use raw_run_data if available, otherwise use run_summary_data
             data_for_plot = context.get('raw_run_data', context.get('run_summary_data', '{}'))
             try:
                 plot_fig = self.generate_plot_visualization(
                     json.loads(data_for_plot),
                     required_functions.visualisation_request_message
                 )
+                # Show plot immediately if callback provided
+                if plot_callback and plot_fig:
+                    plot_callback(plot_fig)
             except Exception as e:
                 log.error("Visualization generation failed", error=str(e))
                 if status_callback:
@@ -299,10 +303,6 @@ class CoachService():
             **kwargs
         )
         
-        # ALWAYS update history
+        # Update history and return just the response
         self.update_history(query, response)
-        
-        # Return both response and figure if we have one
-        if plot_fig:
-            return response, plot_fig
         return response
