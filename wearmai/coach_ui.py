@@ -199,20 +199,20 @@ chat_container = st.container()
 with chat_container:
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
+            # 1. Plot first (if present and from assistant)
+            if msg["role"] == "assistant" and msg.get("plot_key"):
+                fig_json = st.session_state.get(msg["plot_key"])
+                if fig_json:
+                    fig = plotly.io.from_json(fig_json)
+                    st.plotly_chart(fig, use_container_width=True)
+
+            # 2. Expandable 'thoughts' section
             if msg["role"] == "assistant" and msg.get("thoughts_markdown"):
                 with st.expander("✨ See what I was thinking...", expanded=False):
                     st.markdown(msg["thoughts_markdown"], unsafe_allow_html=True)
-            
-            # Main text
+
+            # 3. Main answer text
             st.markdown(msg["content"])
-            
-            # Re-draw any stored figure
-            if msg["role"] == "assistant" and msg.get("plot_key"):
-                fig_json = st.session_state.get(msg["plot_key"])
-                if fig_json is not None:
-                    # Reconstruct figure from JSON
-                    fig = plotly.io.from_json(fig_json)
-                    st.plotly_chart(fig, use_container_width=True)
 
 # ----- Quick Actions -----
 quick_actions = {
