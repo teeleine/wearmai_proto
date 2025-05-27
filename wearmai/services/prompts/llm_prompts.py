@@ -4,6 +4,8 @@ from string import Formatter
 
 class PromptType(StrEnum):
     COACH_PROMPT = "coach_prompt"
+    COACH_SYSTEM_PROMPT_DEEPTHINK = "coach_system_prompt_deepthink"
+    COACH_SYSTEM_PROMPT_FLASH = "coach_system_prompt_flash"
     RUN_SUMMARY_GENERATOR_PROMPT = "run_summary_generator_prompt"
     SESSION_HISTORY_SUMMARIZATION_PROMPT = "session_history_summarization_prompt"
     FUNCTION_DETERMINANT_PROMPT = "function_determinant_prompt"
