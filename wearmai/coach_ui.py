@@ -47,7 +47,7 @@ I can help you analyze your runs, create training plans, and provide expert guid
         upd = st.session_state.user_profile_data
         if upd and "llm_user_profile" in upd:
             st.session_state.coach_svc = CoachService(
-                vs_name="bookchunks",
+                vs_name="Bookchunks",
                 user_profile=upd["llm_user_profile"],
             )
         elif not upd:

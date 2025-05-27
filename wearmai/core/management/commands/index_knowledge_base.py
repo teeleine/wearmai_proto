@@ -23,7 +23,7 @@ class Command(BaseCommand):
             log.info("kb_indexing_debug_mode")
 
         segmentation_svc = SegmentationService()
-        weaviate_vecstore = WeaviateVecStore("bookchunks")
+        weaviate_vecstore = WeaviateVecStore("Bookchunks")
 
         # # Load book md files
         with open('wearmai/development/books/Sports Rehab Injury Prevention_clean.md') as f:
