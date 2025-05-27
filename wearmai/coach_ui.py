@@ -113,7 +113,7 @@ def process_message(user_query: str):
 
                     def status_cb(msg: str):
                         nonlocal thoughts_content, current_section, has_shown_initial_message
-                        if msg.startswith("Thinking:") and thoughts_placeholder:  # Changed to check thoughts_placeholder
+                        if msg.startswith("Thinking:") and thoughts_placeholder:
                             part = msg[len("Thinking:") :].lstrip()
                             stripped = part.strip()
                             
