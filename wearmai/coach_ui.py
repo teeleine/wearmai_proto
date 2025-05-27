@@ -158,13 +158,12 @@ def process_message(user_query: str):
                     )
 
                     # Check if result is a tuple (response, plot_fig)
+                    final_text = result
                     if isinstance(result, tuple):
                         final_text, plot_fig = result
                         # Display the plot
                         with plot_placeholder:
                             st.plotly_chart(plot_fig, use_container_width=True)
-                    else:
-                        final_text = result
 
                     if thinking_expander:
                         if thoughts_seen:

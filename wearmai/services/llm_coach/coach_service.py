@@ -77,7 +77,12 @@ class CoachService():
         return required_funcs
 
 
-    def retrieve_necessary_context(self, query: str, status_callback: Optional[Callable[[str], None]] = None, is_deepthink: bool = False) -> dict:
+    def retrieve_necessary_context(
+        self,
+        query: str,
+        status_callback: Optional[Callable[[str], None]] = None,
+        is_deepthink: bool = False
+    ) -> tuple[dict, Box]:
         if status_callback: status_callback("Analyzing your query to determine next steps...")
         required_functions = self.determine_required_functions(query)
 
@@ -103,14 +108,13 @@ class CoachService():
             context["run_summary_data"] = self.get_run_summary(required_functions.run_ids)
 
         if required_functions.GetGroundingAndFactCheckingData_needed and is_deepthink:
-            # Pass the callback down
             context["fact_checking_data"] = self.grounding_retriever.retrieve_grounding_data(
                 required_functions.fact_checking_query,
                 status_callback=status_callback
             )
 
         if status_callback: status_callback("Consolidating information...")
-        return context
+        return context, required_functions
 
     def close(self) -> None:
         self.vectorstore.close()
@@ -245,10 +249,12 @@ class CoachService():
         
         log.info("stream_answer", is_deepthink=is_deepthink)
         
-        context = self.retrieve_necessary_context(query, status_callback=status_callback, is_deepthink=is_deepthink)
+        context, required_functions = self.retrieve_necessary_context(
+            query, 
+            status_callback=status_callback, 
+            is_deepthink=is_deepthink
+        )
         
-        # Check if visualization is needed
-        required_functions = self.determine_required_functions(query)
         plot_fig = None
         
         if required_functions.PlotVisualisation_needed:
@@ -293,10 +299,10 @@ class CoachService():
             **kwargs
         )
         
-        # If we have a plot, add it to the message data
-        if plot_fig:
-            # Return both the response and the plot figure
-            return response, plot_fig
-        
+        # ALWAYS update history
         self.update_history(query, response)
+        
+        # Return both response and figure if we have one
+        if plot_fig:
+            return response, plot_fig
         return response
