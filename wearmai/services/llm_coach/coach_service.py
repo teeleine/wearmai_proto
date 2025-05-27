@@ -75,7 +75,7 @@ class CoachService():
         return required_funcs
 
 
-    def retrieve_necessary_context(self, query: str, status_callback: Optional[Callable[[str], None]] = None) -> dict:
+    def retrieve_necessary_context(self, query: str, status_callback: Optional[Callable[[str], None]] = None, is_deepthink: bool = False) -> dict:
         if status_callback: status_callback("Analyzing your query to determine next steps...")
         required_functions = self.determine_required_functions(query)
 
@@ -85,7 +85,7 @@ class CoachService():
             "run_summary_data": "",
             "fact_checking_data": {},
             "query_kb_needed": required_functions.QueryKnowledgeBase_needed,
-            "get_fact_check_needed": required_functions.GetGroundingAndFactCheckingData_needed
+            "get_fact_check_needed": required_functions.GetGroundingAndFactCheckingData_needed and is_deepthink
         }
 
         if required_functions.QueryKnowledgeBase_needed:
@@ -100,7 +100,7 @@ class CoachService():
             if status_callback: status_callback(f"Generating summary for run(s): {required_functions.run_ids}...")
             context["run_summary_data"] = self.get_run_summary(required_functions.run_ids)
 
-        if required_functions.GetGroundingAndFactCheckingData_needed:
+        if required_functions.GetGroundingAndFactCheckingData_needed and is_deepthink:
             # Pass the callback down
             context["fact_checking_data"] = self.grounding_retriever.retrieve_grounding_data(
                 required_functions.fact_checking_query,
@@ -149,15 +149,16 @@ class CoachService():
         self.update_session_history()
 
     
-    def create_system_prompt(self, query: str, context: dict) -> str:
+    def create_system_prompt(self, query: str, context: dict, is_deepthink: bool = False) -> str:
         combined_history = [self.session_history_summary] + self.session_history if self.session_history_summary else self.session_history
 
         if context["fact_checking_data"] == True:
              query = query + " Ground your advice and analysis using the provided `fact_checking_data` containing scientific literature search results."
 
+        prompt_type = PromptType.COACH_SYSTEM_PROMPT_DEEPTHINK if is_deepthink else PromptType.COACH_SYSTEM_PROMPT_FLASH
 
         system_prompt = LLMPrompts.get_prompt(
-            PromptType.COACH_PROMPT,
+            prompt_type,
             {
                 "query":query,
                 "user_profile":self.user_profile,
@@ -176,9 +177,10 @@ class CoachService():
         query: str,
         model: LLModels,
         temperature: int | float = 1,
+        is_deepthink: bool = False,
         **kwargs,
     ) -> str:
-        prompt = self.create_system_prompt(query, self.retrieve_necessary_context(query))
+        prompt = self.create_system_prompt(query, self.retrieve_necessary_context(query, is_deepthink=is_deepthink), is_deepthink)
         client = self.llm_factory.get(model)
         result = client.generate(
             prompt,
@@ -205,12 +207,12 @@ class CoachService():
         
         log.info("stream_answer", is_deepthink=is_deepthink)
         
-        context = self.retrieve_necessary_context(query, status_callback=status_callback)
+        context = self.retrieve_necessary_context(query, status_callback=status_callback, is_deepthink=is_deepthink)
         
         if status_callback:
             status_callback("Formulating response...")
         
-        prompt = self.create_system_prompt(query, context)
+        prompt = self.create_system_prompt(query, context, is_deepthink)
         client = self.llm_factory.get(model)
         
         if status_callback:
