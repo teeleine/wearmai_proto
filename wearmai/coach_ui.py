@@ -91,7 +91,7 @@ def process_message(user_query: str):
     with chat_container:  # Use the chat container for assistant messages
         with st.chat_message("assistant"):
             thinking_expander = None
-            thoughts_placeholder = None  # NEW: placeholder for thoughts content
+            thoughts_placeholder = None
             thoughts_content = ""
             thoughts_seen = set()
             current_section = None
@@ -100,7 +100,7 @@ def process_message(user_query: str):
 
             if is_deep:
                 thinking_expander = st.expander("✨ See what I'm thinking...", expanded=False)
-                thoughts_placeholder = thinking_expander.empty()  # NEW: create single placeholder
+                thoughts_placeholder = thinking_expander.empty()
 
             final_answer_ui = st.empty()
 
