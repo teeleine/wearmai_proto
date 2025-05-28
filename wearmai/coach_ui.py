@@ -320,9 +320,10 @@ if st.session_state.show_quick_actions and len(st.session_state.messages) == 1:
         cols = st.columns(len(quick_actions))
         for i, (lbl, prompt) in enumerate(quick_actions.items()):
             if cols[i].button(lbl, key=f"qa_{i}", use_container_width=True):
+                # Hide quick actions immediately
                 quick_actions_placeholder.empty()
                 st.session_state.show_quick_actions = False
-                # Add and show user message
+                # Add and show user message immediately
                 st.session_state.messages.append({"role": "user", "content": prompt})
                 with chat_container:
                     with st.chat_message("user"):
@@ -377,10 +378,11 @@ with chat_col:
         if send_clicked and user_input.strip():
             # Clear any pending transcription
             st.session_state.pending_transcription = ""
+            # Hide quick actions immediately
+            quick_actions_placeholder.empty()
+            st.session_state.show_quick_actions = False
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": user_input})
-            # Hide quick actions if they're still visible
-            st.session_state.show_quick_actions = False
             # Immediately show the user message in the chat
             with chat_container:
                 with st.chat_message("user"):
