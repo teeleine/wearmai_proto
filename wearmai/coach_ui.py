@@ -95,7 +95,7 @@ st.markdown(
         padding: 10px 15px;
       }
       .stSelectbox {
-        max-width: 20rem;
+        max-width: 19rem;
         padding-top: 5rem;
       }
       span[data-testid="stAudioInputWaveformTimeCode"] {
@@ -318,7 +318,7 @@ if new_mode != st.session_state.mode:
     st.rerun()
 
 # Audio input and chat input in a row below
-audio_col, chat_col = st.columns([1, 4])
+audio_col, chat_col = st.columns([1, 3], gap="small")
 
 with audio_col:
     # Audio input
@@ -331,7 +331,7 @@ with audio_col:
 with chat_col:
     # Create a form to handle the input with pre-populated text
     with st.form("chat_form", clear_on_submit=True):
-        col1, col2 = st.columns([4, 1])
+        col1, col2 = st.columns([10, 1], gap="small")
         
         with col1:
             # Use text_input with the transcribed text as default value
@@ -344,7 +344,7 @@ with chat_col:
             )
         
         with col2:
-            send_clicked = st.form_submit_button("Send", use_container_width=True)
+            send_clicked = st.form_submit_button("➤", use_container_width=True)
 
 # Has the user just recorded something new?
 new_audio = (
