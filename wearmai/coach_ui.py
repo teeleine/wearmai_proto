@@ -372,6 +372,8 @@ with mic_col:
         // Initialize the recorder
         let audioRecorder = new AudioRecorder();
 
+        
+
         async function handleMicClick() {{
             console.log('Mic button clicked');
             const button = document.querySelector('.microphone-button');
@@ -405,7 +407,8 @@ with mic_col:
                             console.log('Received transcription:', text);
                             
                             // Update the chat input
-                            const textbox = document.querySelector('textarea[aria-label="Ask the Coach"]');
+                            const rootDoc  = window.parent.document;
+                            const textbox  = rootDoc.querySelector('textarea[aria-label="Ask the Coach"]');
                             console.log(textbox)
                             if (textbox) {{
                                 textbox.value = text;
