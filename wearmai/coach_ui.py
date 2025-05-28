@@ -92,13 +92,14 @@ st.markdown(
       .stForm { max-width:100%; }
       .stForm > div { margin-bottom: 0; }
       .stTextInput > div > div > input {
-        border-radius: 20px;
-        border: 2px solid #e0e0e0;
         padding: 10px 15px;
       }
-      .stTextInput > div > div > input:focus {
-        border-color: #4CAF50;
-        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+      .stSelectbox {
+        max-width: 20rem;
+        padding-top: 5rem;
+      }
+      span[data-testid="stAudioInputWaveformTimeCode"] {
+        display: none;
       }
       .quick-action-buttons > div { margin-bottom:1rem; }
       .microphone-button { 
@@ -303,19 +304,29 @@ if st.session_state.show_quick_actions and len(st.session_state.messages) == 1:
                 st.rerun()  # Force a clean rerun after processing
 
 # ----- Mode Selection and Chat Input -----
-mode_col, chat_col, audio_col = st.columns([1, 2.5, 0.5])
-with mode_col:
-    new_mode = st.selectbox(
-        "Mode",
-        ["Flash", "Deepthink"],
-        index=0 if st.session_state.mode == "Flash" else 1,
-        format_func=lambda x: f"{'⚡' if x == 'Flash' else '🧠'} {x} ({'quick' if x == 'Flash' else 'complex'})",
-        label_visibility="collapsed"
+# Mode dropdown at the top
+new_mode = st.selectbox(
+    "Mode",
+    ["Flash", "Deepthink"],
+    index=0 if st.session_state.mode == "Flash" else 1,
+    format_func=lambda x: f"{'⚡' if x == 'Flash' else '🧠'} {x} ({'quick responses' if x == 'Flash' else 'complex queries'})",
+    label_visibility="collapsed"
+)
+
+if new_mode != st.session_state.mode:
+    st.session_state.mode = new_mode
+    st.rerun()
+
+# Audio input and chat input in a row below
+audio_col, chat_col = st.columns([1, 4])
+
+with audio_col:
+    # Audio input
+    audio_data = st.audio_input(
+        "🎤", 
+        label_visibility="collapsed", 
+        key=f"audio_rec_{st.session_state.audio_input_key}"
     )
-    
-    if new_mode != st.session_state.mode:
-        st.session_state.mode = new_mode
-        st.rerun()
 
 with chat_col:
     # Create a form to handle the input with pre-populated text
@@ -327,31 +338,40 @@ with chat_col:
             user_input = st.text_input(
                 "Message", 
                 value=st.session_state.pending_transcription,
-                placeholder="Ask the Coach...",
+                placeholder="Type a message or click the mic to record audio...",
                 label_visibility="collapsed",
                 key="message_input"
             )
         
         with col2:
             send_clicked = st.form_submit_button("Send", use_container_width=True)
+
+# Has the user just recorded something new?
+new_audio = (
+    audio_data is not None
+    and not st.session_state.audio_processing
+)
+
+if new_audio:
+    # Set processing flag to prevent multiple transcriptions
+    st.session_state.audio_processing = True
     
-    # Process the message if send was clicked and there's input
-    if send_clicked and user_input.strip():
-        # Clear the pending transcription immediately
-        st.session_state.pending_transcription = ""
-        st.session_state.last_audio_rec = None
-        # Increment audio key to force reset of audio input
-        st.session_state.audio_input_key += 1
-        
-        # Immediately hide quick actions
-        quick_actions_placeholder.empty()
-        st.session_state.show_quick_actions = False
-        
-        # Add user message to session state
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        
-        # Force a rerun to update the UI
-        st.rerun()
+    # Show a temporary processing message
+    with st.spinner("Transcribing audio..."):
+        # Transcribe the audio
+        transcription = st.session_state.speech_service.transcribe_audio(
+            audio_data.getvalue(), "wav"
+        )
+
+    # Store the transcription to populate the chat input
+    st.session_state.pending_transcription = transcription
+    # Increment the key to force audio input reset on next render
+    st.session_state.audio_input_key += 1
+    # Reset processing flag
+    st.session_state.audio_processing = False
+
+    # Rerun to show the transcribed text in the chat input
+    st.rerun()
 
 # ----- Process message after rerun if there's a new user message to process -----
 if (len(st.session_state.messages) > 0 and 
@@ -365,38 +385,3 @@ if (len(st.session_state.messages) > 0 and
     # Clear the processing flag after processing is complete
     st.session_state.processing_message = False
     st.rerun()  # Force a clean rerun to update the UI
-
-with audio_col:
-    # Use dynamic key to force reset of audio input
-    audio_data = st.audio_input(
-        "🎤", 
-        label_visibility="collapsed", 
-        key=f"audio_rec_{st.session_state.audio_input_key}"
-    )
-
-    # Has the user just recorded something new?
-    new_audio = (
-        audio_data is not None
-        and not st.session_state.audio_processing
-    )
-
-    if new_audio:
-        # Set processing flag to prevent multiple transcriptions
-        st.session_state.audio_processing = True
-        
-        # Show a temporary processing message
-        with st.spinner("Transcribing audio..."):
-            # Transcribe the audio
-            transcription = st.session_state.speech_service.transcribe_audio(
-                audio_data.getvalue(), "wav"
-            )
-
-        # Store the transcription to populate the chat input
-        st.session_state.pending_transcription = transcription
-        # Increment the key to force audio input reset on next render
-        st.session_state.audio_input_key += 1
-        # Reset processing flag
-        st.session_state.audio_processing = False
-
-        # Rerun to show the transcribed text in the chat input
-        st.rerun()
