@@ -37,10 +37,37 @@ I can help you analyze your runs, create training plans, and provide expert guid
 
     if "user_profile_data" not in st.session_state:
         try:
-            if not connection.is_usable():
-                connection.close()
-                connection.connect()
-            st.session_state.user_profile_data = load_profile(name="Test User 2 - Full Data Load")
+            # Ensure database connection is fresh
+            connection.close()
+            connection.connect()
+            
+            # Load profile with retry mechanism
+            max_retries = 3
+            retry_count = 0
+            last_error = None
+            
+            while retry_count < max_retries:
+                try:
+                    st.session_state.user_profile_data = load_profile(name="Test User 2 - Full Data Load")
+                    break
+                except ValueError as ve:
+                    # Handle specific ValueError from QuerySet evaluation
+                    log.warning("QuerySet evaluation error, retrying...", exc_info=ve)
+                    connection.close()
+                    connection.connect()
+                    retry_count += 1
+                    last_error = ve
+                    if retry_count == max_retries:
+                        raise ve
+                except Exception as e:
+                    log.error("Unexpected error loading user profile", exc_info=e)
+                    last_error = e
+                    break
+            
+            if last_error:
+                st.error(f"Error loading user profile: {last_error}")
+                st.session_state.user_profile_data = None
+                
         except Exception as e:
             st.error(f"Error loading user profile: {e}")
             log.error("Error loading user profile", exc_info=e)
@@ -345,6 +372,23 @@ with chat_col:
         
         with col2:
             send_clicked = st.form_submit_button("➤", use_container_width=True)
+
+        # Handle form submission
+        if send_clicked and user_input.strip():
+            # Clear any pending transcription
+            st.session_state.pending_transcription = ""
+            # Add user message to chat history
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            # Hide quick actions if they're still visible
+            st.session_state.show_quick_actions = False
+            # Immediately show the user message in the chat
+            with chat_container:
+                with st.chat_message("user"):
+                    st.markdown(user_input)
+            # Process the message
+            process_message(user_input)
+            # Force a rerun to update the UI
+            st.rerun()
 
 # Has the user just recorded something new?
 new_audio = (
