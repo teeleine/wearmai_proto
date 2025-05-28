@@ -67,11 +67,18 @@ I can help you analyze your runs, create training plans, and provide expert guid
     if "speech_service" not in st.session_state:
         st.session_state.speech_service = SpeechService()
 
+    # Reset audio-related states
     if "is_recording" not in st.session_state:
         st.session_state.is_recording = False
-
     if "pending_transcription" not in st.session_state:
         st.session_state.pending_transcription = ""
+    if "last_audio_rec" not in st.session_state:
+        st.session_state.last_audio_rec = None
+    if "audio_processing" not in st.session_state:
+        st.session_state.audio_processing = False
+    # Add a counter to force audio input reset
+    if "audio_input_key" not in st.session_state:
+        st.session_state.audio_input_key = 0
 
 
 init_session_state()
@@ -333,6 +340,8 @@ with chat_col:
         # Clear the pending transcription immediately
         st.session_state.pending_transcription = ""
         st.session_state.last_audio_rec = None
+        # Increment audio key to force reset of audio input
+        st.session_state.audio_input_key += 1
         
         # Immediately hide quick actions
         quick_actions_placeholder.empty()
@@ -358,19 +367,23 @@ if (len(st.session_state.messages) > 0 and
     st.rerun()  # Force a clean rerun to update the UI
 
 with audio_col:
-    # Key is important so we can see if the user recorded something new
-    audio_data = st.audio_input("🎤", label_visibility="collapsed", key="audio_rec")
+    # Use dynamic key to force reset of audio input
+    audio_data = st.audio_input(
+        "🎤", 
+        label_visibility="collapsed", 
+        key=f"audio_rec_{st.session_state.audio_input_key}"
+    )
 
     # Has the user just recorded something new?
     new_audio = (
         audio_data is not None
-        and audio_data != st.session_state.get("last_audio_rec")
+        and not st.session_state.audio_processing
     )
 
     if new_audio:
-        # Remember the last clip so we do not transcribe it again on every rerun
-        st.session_state.last_audio_rec = audio_data
-
+        # Set processing flag to prevent multiple transcriptions
+        st.session_state.audio_processing = True
+        
         # Show a temporary processing message
         with st.spinner("Transcribing audio..."):
             # Transcribe the audio
@@ -380,6 +393,10 @@ with audio_col:
 
         # Store the transcription to populate the chat input
         st.session_state.pending_transcription = transcription
+        # Increment the key to force audio input reset on next render
+        st.session_state.audio_input_key += 1
+        # Reset processing flag
+        st.session_state.audio_processing = False
 
         # Rerun to show the transcribed text in the chat input
         st.rerun()
