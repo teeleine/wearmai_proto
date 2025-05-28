@@ -405,7 +405,8 @@ with mic_col:
                             console.log('Received transcription:', text);
                             
                             // Update the chat input
-                            const textbox = document.querySelector('.stTextInput input');
+                            const textbox = document.querySelector('textarea[aria-label="Ask the Coach"]');
+                            console.log(textbox)
                             if (textbox) {{
                                 textbox.value = text;
                                 // Trigger an input event to make Streamlit recognize the change
