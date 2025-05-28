@@ -326,7 +326,7 @@ with chat_col:
     
     # Process the message if send was clicked and there's input
     if send_clicked and user_input.strip():
-        # Clear the pending transcription immediately
+        # Clear the pending transcription immediately and rerun to update UI
         st.session_state.pending_transcription = ""
         
         # Immediately hide quick actions
@@ -338,13 +338,26 @@ with chat_col:
         with chat_container:
             with st.chat_message("user"):
                 st.markdown(user_input)
-        process_message(user_input)
-        st.rerun()  # Force a clean rerun after processing
-    
+        
+        # Force a rerun to clear the input field before processing
+        st.rerun()
+        
     # Also clear transcription if form was submitted but input was empty
     elif send_clicked:
         st.session_state.pending_transcription = ""
         st.rerun()
+
+# Process message after rerun if there's a new user message to process
+if (len(st.session_state.messages) > 0 and 
+    st.session_state.messages[-1]["role"] == "user" and
+    not st.session_state.get("processing_message", False)):
+    
+    # Set flag to prevent multiple processing
+    st.session_state.processing_message = True
+    last_user_message = st.session_state.messages[-1]["content"]
+    process_message(last_user_message)
+    # Clear the processing flag
+    st.session_state.processing_message = False
 
 with audio_col:
     # Key is important so we can see if the user recorded something new
