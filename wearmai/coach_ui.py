@@ -83,6 +83,16 @@ st.markdown(
       .block-container { max-width:80rem; padding:2rem 1rem 3rem; }
       .stButton button { width:100%; padding:0.5rem; min-height:3rem; }
       .stForm { max-width:100%; }
+      .stForm > div { margin-bottom: 0; }
+      .stTextInput > div > div > input {
+        border-radius: 20px;
+        border: 2px solid #e0e0e0;
+        padding: 10px 15px;
+      }
+      .stTextInput > div > div > input:focus {
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+      }
       .quick-action-buttons > div { margin-bottom:1rem; }
       .microphone-button { 
         border: none;
@@ -316,7 +326,7 @@ with chat_col:
     
     # Process the message if send was clicked and there's input
     if send_clicked and user_input.strip():
-        # Clear the pending transcription
+        # Clear the pending transcription immediately
         st.session_state.pending_transcription = ""
         
         # Immediately hide quick actions
@@ -330,6 +340,11 @@ with chat_col:
                 st.markdown(user_input)
         process_message(user_input)
         st.rerun()  # Force a clean rerun after processing
+    
+    # Also clear transcription if form was submitted but input was empty
+    elif send_clicked:
+        st.session_state.pending_transcription = ""
+        st.rerun()
 
 with audio_col:
     # Key is important so we can see if the user recorded something new
