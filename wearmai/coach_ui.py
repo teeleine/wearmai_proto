@@ -70,6 +70,9 @@ I can help you analyze your runs, create training plans, and provide expert guid
     if "is_recording" not in st.session_state:
         st.session_state.is_recording = False
 
+    if "pending_transcription" not in st.session_state:
+        st.session_state.pending_transcription = ""
+
 
 init_session_state()
 
@@ -101,6 +104,14 @@ st.markdown(
         0% { transform: scale(1); }
         50% { transform: scale(1.1); }
         100% { transform: scale(1); }
+      }
+      .transcribed-text {
+        background-color: #f0f8ff;
+        border: 1px solid #4CAF50;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+        font-style: italic;
       }
     </style>
     """,
@@ -271,7 +282,7 @@ if st.session_state.show_quick_actions and len(st.session_state.messages) == 1:
                 st.rerun()  # Force a clean rerun after processing
 
 # ----- Mode Selection and Chat Input -----
-mode_col, chat_col, mic_col = st.columns([1, 2.7, 0.3])
+mode_col, chat_col, audio_col = st.columns([1, 2.5, 0.5])
 with mode_col:
     new_mode = st.selectbox(
         "Mode",
@@ -286,147 +297,63 @@ with mode_col:
         st.rerun()
 
 with chat_col:
-    # Chat input using st.chat_input
-    if user_message := st.chat_input("Ask the Coach"):
+    # Create a form to handle the input with pre-populated text
+    with st.form("chat_form", clear_on_submit=True):
+        col1, col2 = st.columns([4, 1])
+        
+        with col1:
+            # Use text_input with the transcribed text as default value
+            user_input = st.text_input(
+                "Message", 
+                value=st.session_state.pending_transcription,
+                placeholder="Ask the Coach...",
+                label_visibility="collapsed",
+                key="message_input"
+            )
+        
+        with col2:
+            send_clicked = st.form_submit_button("Send", use_container_width=True)
+    
+    # Process the message if send was clicked and there's input
+    if send_clicked and user_input.strip():
+        # Clear the pending transcription
+        st.session_state.pending_transcription = ""
+        
         # Immediately hide quick actions
         quick_actions_placeholder.empty()
         st.session_state.show_quick_actions = False
+        
         # Add and show user message
-        st.session_state.messages.append({"role": "user", "content": user_message})
+        st.session_state.messages.append({"role": "user", "content": user_input})
         with chat_container:
             with st.chat_message("user"):
-                st.markdown(user_message)
-        process_message(user_message)
+                st.markdown(user_input)
+        process_message(user_input)
         st.rerun()  # Force a clean rerun after processing
 
-with mic_col:
-    mic_icon = "🎤" if not st.session_state.is_recording else "⏹️"
-    mic_class = "microphone-button recording" if st.session_state.is_recording else "microphone-button"
-    
-    # Add JavaScript for handling audio recording
-    st.components.v1.html(
-        f"""
-        <button 
-            class="{mic_class}" 
-            onclick="handleMicClick()"
-            style="width: 100%; height: 40px; margin-top: 1px;"
-        >
-            {mic_icon}
-        </button>
-        
-        <script>
-        // Audio recorder class definition
-        class AudioRecorder {{
-            constructor() {{
-                this.mediaRecorder = null;
-                this.audioChunks = [];
-                this.isRecording = false;
-            }}
+with audio_col:
+    # Key is important so we can see if the user recorded something new
+    audio_data = st.audio_input("🎤", label_visibility="collapsed", key="audio_rec")
 
-            async startRecording() {{
-                try {{
-                    console.log('Requesting microphone access...');
-                    const stream = await navigator.mediaDevices.getUserMedia({{ audio: true }});
-                    console.log('Microphone access granted');
-                    
-                    this.mediaRecorder = new MediaRecorder(stream);
-                    this.audioChunks = [];
-                    this.isRecording = true;
-
-                    this.mediaRecorder.ondataavailable = (event) => {{
-                        console.log('Data available from recorder');
-                        this.audioChunks.push(event.data);
-                    }};
-
-                    this.mediaRecorder.start();
-                    console.log('Recording started');
-                    return true;
-                }} catch (error) {{
-                    console.error('Error starting recording:', error);
-                    alert('Error accessing microphone: ' + error.message);
-                    return false;
-                }}
-            }}
-
-            stopRecording() {{
-                return new Promise((resolve) => {{
-                    if (!this.mediaRecorder) {{
-                        console.log('No media recorder to stop');
-                        resolve(null);
-                        return;
-                    }}
-
-                    this.mediaRecorder.onstop = () => {{
-                        console.log('Recording stopped, creating blob');
-                        const audioBlob = new Blob(this.audioChunks, {{ type: 'audio/webm' }});
-                        this.isRecording = false;
-                        this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                        resolve(audioBlob);
-                    }};
-
-                    this.mediaRecorder.stop();
-                }});
-            }}
-        }}
-
-        // Initialize the recorder
-        let audioRecorder = new AudioRecorder();
-
-        
-
-        async function handleMicClick() {{
-            console.log('Mic button clicked');
-            const button = document.querySelector('.microphone-button');
-            const isRecording = button.classList.contains('recording');
-            
-            if (!isRecording) {{
-                console.log('Starting recording...');
-                const started = await audioRecorder.startRecording();
-                if (started) {{
-                    button.classList.add('recording');
-                    button.innerHTML = '⏹️';
-                }}
-            }} else {{
-                console.log('Stopping recording...');
-                button.classList.remove('recording');
-                button.innerHTML = '🎤';
-                const audioBlob = await audioRecorder.stopRecording();
-                if (audioBlob) {{
-                    console.log('Sending audio to server...');
-                    const formData = new FormData();
-                    formData.append('audio', audioBlob, 'recording.webm');
-                    
-                    try {{
-                        const response = await fetch('http://localhost:8000/api/speech/transcribe', {{
-                            method: 'POST',
-                            body: formData
-                        }});
-                        
-                        if (response.ok) {{
-                            const text = await response.text();
-                            console.log('Received transcription:', text);
-                            
-                            // Update the chat input
-                            const rootDoc  = window.parent.document;
-                            const textbox  = rootDoc.querySelector('textarea[aria-label="Ask the Coach"]');
-                            console.log(textbox)
-                            if (textbox) {{
-                                textbox.value = text;
-                                // Trigger an input event to make Streamlit recognize the change
-                                textbox.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                            }}
-                        }} else {{
-                            console.error('Server error:', await response.text());
-                            alert('Error transcribing audio. Please try again.');
-                        }}
-                    }} catch (error) {{
-                        console.error('Error sending audio:', error);
-                        alert('Error sending audio to server. Please try again.');
-                    }}
-                }}
-            }}
-        }}
-        </script>
-        """,
-        height=50,
+    # Has the user just recorded something new?
+    new_audio = (
+        audio_data is not None
+        and audio_data != st.session_state.get("last_audio_rec")
     )
+
+    if new_audio:
+        # Remember the last clip so we do not transcribe it again on every rerun
+        st.session_state.last_audio_rec = audio_data
+
+        # Show a temporary processing message
+        with st.spinner("Transcribing audio..."):
+            # Transcribe the audio
+            transcription = st.session_state.speech_service.transcribe_audio(
+                audio_data.getvalue(), "wav"
+            )
+
+        # Store the transcription to populate the chat input
+        st.session_state.pending_transcription = transcription
+
+        # Rerun to show the transcribed text in the chat input
+        st.rerun()

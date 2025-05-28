@@ -7,13 +7,13 @@ class SpeechService:
     def __init__(self):
         self.client = OpenAI(api_key=OPENAI_API_KEY)
         
-    def transcribe_audio(self, audio_data: bytes, file_extension: str = "webm") -> str:
+    def transcribe_audio(self, audio_data: bytes, file_extension: str = "wav") -> str:
         """
         Transcribe audio data using OpenAI's Whisper model.
         
         Args:
             audio_data: Raw audio data in bytes
-            file_extension: The file extension/format of the audio (e.g., "webm", "mp3")
+            file_extension: The file extension/format of the audio (e.g., "wav", "webm", "mp3")
             
         Returns:
             str: The transcribed text
@@ -29,7 +29,7 @@ class SpeechService:
                 try:
                     # Call OpenAI's transcription API
                     transcription = self.client.audio.transcriptions.create(
-                        model="gpt-4o-transcribe",
+                        model="whisper-1",  # Using Whisper model
                         file=audio_file,
                         response_format="text"
                     )

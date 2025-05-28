@@ -3,12 +3,8 @@ import coach_ui  # This will run your Streamlit app
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from api.speech_endpoints import app as speech_app
 
 app = FastAPI()
-
-# Mount the speech API
-app.mount("/api/speech", speech_app)
 
 # Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
