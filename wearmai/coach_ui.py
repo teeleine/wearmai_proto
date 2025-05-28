@@ -138,6 +138,10 @@ def process_message(user_query: str):
         )
         return
 
+    # Add the user message to session state if not already present
+    if not st.session_state.messages or st.session_state.messages[-1]["role"] != "user":
+        st.session_state.messages.append({"role": "user", "content": user_query})
+
     # show the assistant bubble
     with chat_container:
         with st.chat_message("assistant"):
@@ -326,30 +330,21 @@ with chat_col:
     
     # Process the message if send was clicked and there's input
     if send_clicked and user_input.strip():
-        # Clear the pending transcription immediately and rerun to update UI
+        # Clear the pending transcription immediately
         st.session_state.pending_transcription = ""
-        st.session_state.last_audio_rec = None  # Add this line
+        st.session_state.last_audio_rec = None
         
         # Immediately hide quick actions
         quick_actions_placeholder.empty()
         st.session_state.show_quick_actions = False
         
-        # Add and show user message
+        # Add user message to session state
         st.session_state.messages.append({"role": "user", "content": user_input})
-        with chat_container:
-            with st.chat_message("user"):
-                st.markdown(user_input)
         
-        # Force a rerun to clear the input field before processing
-        st.rerun()
-        
-    # Also clear transcription if form was submitted but input was empty
-    elif send_clicked:
-        st.session_state.pending_transcription = ""
-        st.session_state.last_audio_rec = None  # Add this line
+        # Force a rerun to update the UI
         st.rerun()
 
-# Process message after rerun if there's a new user message to process
+# ----- Process message after rerun if there's a new user message to process -----
 if (len(st.session_state.messages) > 0 and 
     st.session_state.messages[-1]["role"] == "user" and
     not st.session_state.get("processing_message", False)):
@@ -358,8 +353,9 @@ if (len(st.session_state.messages) > 0 and
     st.session_state.processing_message = True
     last_user_message = st.session_state.messages[-1]["content"]
     process_message(last_user_message)
-    # Clear the processing flag
+    # Clear the processing flag after processing is complete
     st.session_state.processing_message = False
+    st.rerun()  # Force a clean rerun to update the UI
 
 with audio_col:
     # Key is important so we can see if the user recorded something new
