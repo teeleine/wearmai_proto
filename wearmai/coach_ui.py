@@ -381,16 +381,20 @@ with chat_col:
             # Hide quick actions immediately
             quick_actions_placeholder.empty()
             st.session_state.show_quick_actions = False
-            # Add user message to chat history
+            # Store the message for next script run
             st.session_state.messages.append({"role": "user", "content": user_input})
-            # Immediately show the user message in the chat
-            with chat_container:
-                with st.chat_message("user"):
-                    st.markdown(user_input)
-            # Process the message
-            process_message(user_input)
-            # Force a rerun to update the UI
+            # Flag that a message is waiting to be processed
+            st.session_state.to_process = True
+            # Force an immediate rerun to clear the input
             st.rerun()
+
+# ----- Process message after rerun if there's a new message to process -----
+if st.session_state.get("to_process", False):
+    # Reset the processing flag
+    st.session_state.to_process = False
+    # Process the message - no need to show it again since it's already in chat history
+    process_message(st.session_state.messages[-1]["content"])
+    st.rerun()  # Force a clean rerun to update the UI
 
 # Has the user just recorded something new?
 new_audio = (
@@ -418,16 +422,3 @@ if new_audio:
 
     # Rerun to show the transcribed text in the chat input
     st.rerun()
-
-# ----- Process message after rerun if there's a new user message to process -----
-if (len(st.session_state.messages) > 0 and 
-    st.session_state.messages[-1]["role"] == "user" and
-    not st.session_state.get("processing_message", False)):
-    
-    # Set flag to prevent multiple processing
-    st.session_state.processing_message = True
-    last_user_message = st.session_state.messages[-1]["content"]
-    process_message(last_user_message)
-    # Clear the processing flag after processing is complete
-    st.session_state.processing_message = False
-    st.rerun()  # Force a clean rerun to update the UI
