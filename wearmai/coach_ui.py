@@ -3,6 +3,7 @@ import django
 from infrastructure.logging import configure_logging
 import plotly.express as px
 import plotly.io  # Add this import for optional JSON serialization
+from services.speech.speech_service import SpeechService
 
 # Configure Django settings before importing any Django models
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "wearmai.settings")
@@ -63,6 +64,12 @@ I can help you analyze your runs, create training plans, and provide expert guid
     if "show_quick_actions" not in st.session_state:
         st.session_state.show_quick_actions = True
 
+    if "speech_service" not in st.session_state:
+        st.session_state.speech_service = SpeechService()
+
+    if "is_recording" not in st.session_state:
+        st.session_state.is_recording = False
+
 
 init_session_state()
 
@@ -74,6 +81,27 @@ st.markdown(
       .stButton button { width:100%; padding:0.5rem; min-height:3rem; }
       .stForm { max-width:100%; }
       .quick-action-buttons > div { margin-bottom:1rem; }
+      .microphone-button { 
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 1.5rem;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: background-color 0.3s;
+      }
+      .microphone-button:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+      .microphone-button.recording {
+        color: red;
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
     </style>
     """,
     unsafe_allow_html=True,
@@ -243,7 +271,7 @@ if st.session_state.show_quick_actions and len(st.session_state.messages) == 1:
                 st.rerun()  # Force a clean rerun after processing
 
 # ----- Mode Selection and Chat Input -----
-mode_col, chat_col = st.columns([1, 3])
+mode_col, chat_col, mic_col = st.columns([1, 2.7, 0.3])
 with mode_col:
     new_mode = st.selectbox(
         "Mode",
@@ -270,3 +298,131 @@ with chat_col:
                 st.markdown(user_message)
         process_message(user_message)
         st.rerun()  # Force a clean rerun after processing
+
+with mic_col:
+    mic_icon = "🎤" if not st.session_state.is_recording else "⏹️"
+    mic_class = "microphone-button recording" if st.session_state.is_recording else "microphone-button"
+    
+    # Add JavaScript for handling audio recording
+    st.components.v1.html(
+        f"""
+        <button 
+            class="{mic_class}" 
+            onclick="handleMicClick()"
+            style="width: 100%; height: 40px; margin-top: 1px;"
+        >
+            {mic_icon}
+        </button>
+        
+        <script>
+        // Audio recorder class definition
+        class AudioRecorder {{
+            constructor() {{
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.isRecording = false;
+            }}
+
+            async startRecording() {{
+                try {{
+                    console.log('Requesting microphone access...');
+                    const stream = await navigator.mediaDevices.getUserMedia({{ audio: true }});
+                    console.log('Microphone access granted');
+                    
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    this.isRecording = true;
+
+                    this.mediaRecorder.ondataavailable = (event) => {{
+                        console.log('Data available from recorder');
+                        this.audioChunks.push(event.data);
+                    }};
+
+                    this.mediaRecorder.start();
+                    console.log('Recording started');
+                    return true;
+                }} catch (error) {{
+                    console.error('Error starting recording:', error);
+                    alert('Error accessing microphone: ' + error.message);
+                    return false;
+                }}
+            }}
+
+            stopRecording() {{
+                return new Promise((resolve) => {{
+                    if (!this.mediaRecorder) {{
+                        console.log('No media recorder to stop');
+                        resolve(null);
+                        return;
+                    }}
+
+                    this.mediaRecorder.onstop = () => {{
+                        console.log('Recording stopped, creating blob');
+                        const audioBlob = new Blob(this.audioChunks, {{ type: 'audio/webm' }});
+                        this.isRecording = false;
+                        this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                        resolve(audioBlob);
+                    }};
+
+                    this.mediaRecorder.stop();
+                }});
+            }}
+        }}
+
+        // Initialize the recorder
+        let audioRecorder = new AudioRecorder();
+
+        async function handleMicClick() {{
+            console.log('Mic button clicked');
+            const button = document.querySelector('.microphone-button');
+            const isRecording = button.classList.contains('recording');
+            
+            if (!isRecording) {{
+                console.log('Starting recording...');
+                const started = await audioRecorder.startRecording();
+                if (started) {{
+                    button.classList.add('recording');
+                    button.innerHTML = '⏹️';
+                }}
+            }} else {{
+                console.log('Stopping recording...');
+                button.classList.remove('recording');
+                button.innerHTML = '🎤';
+                const audioBlob = await audioRecorder.stopRecording();
+                if (audioBlob) {{
+                    console.log('Sending audio to server...');
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob, 'recording.webm');
+                    
+                    try {{
+                        const response = await fetch('http://localhost:8000/api/speech/transcribe', {{
+                            method: 'POST',
+                            body: formData
+                        }});
+                        
+                        if (response.ok) {{
+                            const text = await response.text();
+                            console.log('Received transcription:', text);
+                            
+                            // Update the chat input
+                            const textbox = document.querySelector('.stTextInput input');
+                            if (textbox) {{
+                                textbox.value = text;
+                                // Trigger an input event to make Streamlit recognize the change
+                                textbox.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                            }}
+                        }} else {{
+                            console.error('Server error:', await response.text());
+                            alert('Error transcribing audio. Please try again.');
+                        }}
+                    }} catch (error) {{
+                        console.error('Error sending audio:', error);
+                        alert('Error sending audio to server. Please try again.');
+                    }}
+                }}
+            }}
+        }}
+        </script>
+        """,
+        height=50,
+    )
