@@ -328,6 +328,7 @@ with chat_col:
     if send_clicked and user_input.strip():
         # Clear the pending transcription immediately and rerun to update UI
         st.session_state.pending_transcription = ""
+        st.session_state.last_audio_rec = None  # Add this line
         
         # Immediately hide quick actions
         quick_actions_placeholder.empty()
@@ -345,6 +346,7 @@ with chat_col:
     # Also clear transcription if form was submitted but input was empty
     elif send_clicked:
         st.session_state.pending_transcription = ""
+        st.session_state.last_audio_rec = None  # Add this line
         st.rerun()
 
 # Process message after rerun if there's a new user message to process
