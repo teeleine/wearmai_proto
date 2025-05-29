@@ -128,6 +128,10 @@ st.markdown(
       span[data-testid="stAudioInputWaveformTimeCode"] {
         display: none;
       }
+      /* Add styles for audio input container */
+      div[data-testid="stAudioInput"] {
+        max-width: 100px;
+      }
       .quick-action-buttons > div { margin-bottom:1rem; }
       .microphone-button { 
         border: none;
