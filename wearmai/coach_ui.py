@@ -130,7 +130,7 @@ st.markdown(
       }
       /* Add styles for audio input container */
       div[data-testid="stAudioInput"] {
-        max-width: 100px;
+        max-width: 90px;
       }
       .quick-action-buttons > div { margin-bottom:1rem; }
       .microphone-button { 
@@ -161,6 +161,30 @@ st.markdown(
         padding: 10px;
         margin-bottom: 10px;
         font-style: italic;
+      }
+
+      /* NEW: Reduce gap and width of audio column */
+      .stHorizontalBlock:has(div[data-testid="stAudioInput"]) {
+        gap: 0rem !important;
+      }
+      
+      /* Force the audio column to be much narrower */
+      .stColumn:has(div[data-testid="stAudioInput"]) {
+        max-width: 100px !important;
+        min-width: 100px !important;
+        flex: 0 0 100px !important;
+        padding-right: 0.5rem !important;
+      }
+      
+      /* Make the vertical block inside audio column narrower */
+      .stColumn:has(div[data-testid="stAudioInput"]) .stVerticalBlock {
+        max-width: 120px !important;
+      }
+      
+      /* Ensure chat column takes remaining space */
+      .stColumn:has(.stForm) {
+        flex: 1 1 auto !important;
+        padding-left: 0.5rem !important;
       }
     </style>
     """,
