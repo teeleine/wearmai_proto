@@ -98,20 +98,26 @@ class GeminiClient(BaseLLMClient):
 
             for chunk in stream:
                 # Handle thinking output if available
-                if hasattr(chunk, 'candidates') and chunk.candidates and len(chunk.candidates) > 0:
+                if hasattr(chunk, 'candidates') and chunk.candidates:
                     candidate = chunk.candidates[0]
-                    if hasattr(candidate, 'content') and candidate.content and hasattr(candidate.content, 'parts'):
-                        for part in candidate.content.parts:
-                            if not part.text:
-                                continue
-                            elif hasattr(part, 'thought') and part.thought:
-                                # Pass thought to callback if available
-                                if status_callback:
-                                    status_callback(f"Thinking: {part.text}")
-                                stream_box.markdown(final_response + "▌")
-                            else:
-                                final_response += part.text
-                                stream_box.markdown(final_response + "▌")
+                    
+                    # Safely obtain parts; they may legitimately be None
+                    candidate_content = getattr(candidate, 'content', None)
+                    parts = getattr(candidate_content, 'parts', None) if candidate_content else None
+                    if not parts:  # Nothing to iterate over
+                        continue
+                        
+                    for part in parts:
+                        if not getattr(part, 'text', ''):
+                            continue
+                        elif hasattr(part, 'thought') and part.thought:
+                            # Pass thought to callback if available
+                            if status_callback:
+                                status_callback(f"Thinking: {part.text}")
+                            stream_box.markdown(final_response + "▌")
+                        else:
+                            final_response += part.text
+                            stream_box.markdown(final_response + "▌")
                 # Regular text output
                 elif hasattr(chunk, 'text') and chunk.text:
                     final_response += chunk.text
