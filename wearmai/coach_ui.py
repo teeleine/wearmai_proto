@@ -298,18 +298,15 @@ def process_message(user_query: str):
 
                     data["content"] = final_text
 
-                    if thinking_expander:
-                        if thoughts_seen:
-                            thinking_expander.expanded = False
-                        else:
-                            thinking_expander.markdown("")
-
-                    status_box.update(label="Response complete!", state="complete", expanded=False)
-
-                    if is_deep and thoughts_seen:
+                    # FIXED: Only modify the expander if we have thoughts to show
+                    if thinking_expander and thoughts_seen:
+                        thinking_expander.expanded = False
+                        # Store the cleaned thoughts for the message history
                         cleaned = thoughts_content.replace("⭐ The model's thoughts will be shown below\n\n", "", 1).strip()
                         if cleaned:
                             data["thoughts_markdown"] = cleaned
+
+                    status_box.update(label="Response complete!", state="complete", expanded=False)
 
                     st.session_state.messages.append(data)
 
