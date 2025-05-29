@@ -120,6 +120,7 @@ st.markdown(
       .stForm > div { margin-bottom: 0; }
       .stTextInput > div > div > input {
         padding: 10px 15px;
+        background-color: rgb(240, 242, 246);
       }
       .stSelectbox {
         max-width: 19rem;
@@ -173,7 +174,13 @@ st.markdown(
         max-width: 100px !important;
         min-width: 100px !important;
         flex: 0 0 100px !important;
-        padding-right: 0.5rem !important;
+        border-radius: 0px;
+        border: none;
+      }
+
+      .stAudioInput > div:first-of-type {
+        border-radius: 0px;
+        border: none;
       }
       
       /* Make the vertical block inside audio column narrower */
@@ -184,7 +191,11 @@ st.markdown(
       /* Ensure chat column takes remaining space */
       .stColumn:has(.stForm) {
         flex: 1 1 auto !important;
-        padding-left: 0.5rem !important;
+      }
+      .stForm {
+        border-radius: 0px;
+        background-color: rgb(240, 242, 246);
+        border: none;
       }
     </style>
     """,
