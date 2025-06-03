@@ -135,7 +135,7 @@ class CoachService():
             response_schema=ConversationSummaryOutput
         )
 
-        conversation_summary_response: ConversationSummaryOutput = response.parsed
+        conversation_summary_response: ConversationSummaryOutput = response
 
         if self.session_history_summary:
             self.session_history_summary = self.session_history_summary + '\n' + conversation_summary_response.conversation_summary

@@ -121,10 +121,37 @@ st.markdown(
       .stTextInput > div > div > input {
         padding: 10px 15px;
         background-color: rgb(240, 242, 246);
+        color: rgb(49, 51, 63) !important;
+        caret-color: rgb(49, 51, 63) !important;
       }
       .stSelectbox {
         max-width: 19rem;
         padding-top: 5rem;
+      }
+      /* Light mode text input styling */
+      .stTextInput > div > div > input {
+        padding: 10px 15px;
+        background-color: rgb(240, 242, 246);
+        color: rgb(49, 51, 63) !important;
+        caret-color: rgb(49, 51, 63) !important;
+      }
+      
+      /* Dark mode text input styling - this fixes the white text issue */
+      [data-theme="dark"] .stTextInput > div > div > input {
+        padding: 10px 15px;
+        background-color: rgb(38, 39, 48) !important;
+        color: rgb(250, 250, 250) !important;
+        border: 1px solid rgb(82, 82, 91) !important;
+        caret-color: rgb(250, 250, 250) !important;
+      }
+      
+      /* Ensure placeholder text is visible in both modes */
+      .stTextInput > div > div > input::placeholder {
+        color: rgb(132, 132, 132) !important;
+      }
+      
+      [data-theme="dark"] .stTextInput > div > div > input::placeholder {
+        color: rgb(163, 163, 163) !important;
       }
       span[data-testid="stAudioInputWaveformTimeCode"] {
         display: none;
