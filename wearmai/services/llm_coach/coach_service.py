@@ -269,8 +269,10 @@ class CoachService():
             
             data_for_plot = context.get('raw_run_data', context.get('run_summary_data', '{}'))
             try:
+                # Handle both string and dictionary inputs
+                plot_data = json.loads(data_for_plot) if isinstance(data_for_plot, (str, bytes, bytearray)) else data_for_plot
                 plot_fig = self.generate_plot_visualization(
-                    json.loads(data_for_plot),
+                    plot_data,
                     required_functions.visualisation_request_message
                 )
                 # Show plot immediately if callback provided
