@@ -5,6 +5,9 @@ class QueryEvaluatorOutput(BaseModel):
     query: str
     rationale: str
 
+class RunSummaryOutput(BaseModel):
+    text_summary: str
+
 class ConversationSummaryOutput(BaseModel):
     conversation_summary: str
 

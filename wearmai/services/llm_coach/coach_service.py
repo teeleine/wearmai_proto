@@ -3,7 +3,7 @@ from infrastructure.llm_clients.factory import LLMClientFactory, LLModels
 from box import Box
 from core.serializers import RunDetailSerializer
 from core.models import Run
-from services.prompts.structured_outputs import ConversationSummaryOutput, function_determinant_json_format, plotly_visualisation_output_format
+from services.prompts.structured_outputs import ConversationSummaryOutput, RunSummaryOutput, function_determinant_json_format, plotly_visualisation_output_format
 from services.prompts.llm_prompts import LLMPrompts, PromptType
 import json
 from typing import Callable, Optional
@@ -45,10 +45,14 @@ class CoachService():
         system_prompt = LLMPrompts.get_prompt(PromptType.RUN_SUMMARY_GENERATOR_PROMPT, {"run_data": run_data,"user_profile": self.user_profile})
         client = self.llm_factory.get(LLModels.GEMINI_20_FLASH)
 
-        return client.generate(
+        run_summary_response: RunSummaryOutput = client.generate(
             system_prompt,
-            model=LLModels.GEMINI_20_FLASH
+            model=LLModels.GEMINI_20_FLASH,
+            response_mime_type="application/json",
+            response_schema=RunSummaryOutput
         )
+
+        return {"text_summary": run_summary_response.text_summary}
 
     def determine_required_functions(self, query: str) -> Box:
         chat_history = [self.session_history_summary] + self.session_history if self.session_history_summary else self.session_history
@@ -213,7 +217,7 @@ class CoachService():
             system_prompt,
             model=LLModels.O4_MINI,
             reasoning={
-                "effort": "medium"
+                "effort": "low"
             },
             text={
             "format": plotly_visualisation_output_format
